@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)]()
 [![Stack](https://img.shields.io/badge/Stack-Tauri%20v2%20%2B%20Svelte%20%2B%20Rust-orange.svg)]()
-[![CI](https://github.com/vectorcut/vectorcut/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+[![CI](https://github.com/tayyarufkun/vectorcut/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 
 <p align="center">
   <img src="docs/screenshot.png" alt="VectorCut Studio Desktop Screenshot" width="850" />
@@ -59,7 +59,7 @@ VectorCut produces standard, unstyled, clean SVG paths (`fill="none" stroke="#00
 
 ## 🚀 Installation & Downloads
 
-Pre-built binaries are available for every major desktop operating system on the [Releases](https://github.com/vectorcut/vectorcut/releases) page:
+Pre-built binaries are available for every major desktop operating system on the [Releases](https://github.com/tayyarufkun/vectorcut/releases) page:
 
 | Platform | Download Format | Notes |
 | :--- | :--- | :--- |
@@ -81,7 +81,7 @@ Pre-built binaries are available for every major desktop operating system on the
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/vectorcut/vectorcut.git
+   git clone https://github.com/tayyarufkun/vectorcut.git
    cd vectorcut
    ```
 

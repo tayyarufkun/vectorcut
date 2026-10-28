@@ -84,3 +84,4 @@ cd src-tauri && cargo test
 5. Open a Pull Request and fill out the provided PR template.
 
 Thank you for helping make VectorCut Studio better!
+

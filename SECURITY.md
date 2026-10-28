@@ -17,3 +17,4 @@ Instead, please send an email or submit a private security advisory through GitH
 3. Provide a detailed summary, proof of concept, and steps to reproduce.
 
 We will acknowledge receipt within 48 hours and work with you on a resolution before any public disclosure.
+
