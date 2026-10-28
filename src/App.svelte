@@ -5,12 +5,14 @@
   import Sidebar from "./components/Sidebar.svelte";
   import Canvas from "./components/Canvas.svelte";
   import PreferencesModal from "./components/PreferencesModal.svelte";
+  import LanguageModal from "./components/LanguageModal.svelte";
   import { convertImage, saveSvgDialog } from "./lib/api";
   import { loadPreferences, savePreferences, type AppPreferences } from "./lib/preferences";
-  import { t } from "./lib/i18n";
+  import { t, type Language } from "./lib/i18n";
 
   let preferences: AppPreferences = loadPreferences();
   let showPreferencesModal: boolean = false;
+  let showLanguageModal: boolean = false;
 
   let originalDataUri: string | null = null;
   let originalFileName: string = "";
@@ -52,6 +54,12 @@
     preferences = newPrefs;
     savePreferences(newPrefs);
     triggerToast(t(preferences.language, "prefSavedToast"));
+  }
+
+  function handleSelectLanguage(newLang: Language) {
+    preferences = { ...preferences, language: newLang };
+    savePreferences(preferences);
+    triggerToast(t(newLang, "prefSavedToast"));
   }
 
   function handleFileSelected(data: {
@@ -116,7 +124,7 @@
       }
     } catch (err: any) {
       console.error("Save error:", err);
-      // Browser fallback
+      // Web fallback
       const blob = new Blob([svgContent], { type: "image/svg+xml" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -126,10 +134,6 @@
       URL.revokeObjectURL(url);
       triggerToast(t(preferences.language, "statusSaved"));
     }
-  }
-
-  function handleFolderClick(folder: string) {
-    triggerToast(`Folder: ${folder}`);
   }
 </script>
 
@@ -143,6 +147,7 @@
     onViewModeChange={(m) => (viewMode = m)}
     onDownload={handleDownload}
     onOpenPreferences={() => (showPreferencesModal = true)}
+    onOpenLanguage={() => (showLanguageModal = true)}
   />
 
   <div class="main-container">
@@ -162,7 +167,6 @@
         {isProcessing}
         onConvert={runConversion}
         onParamChange={runConversion}
-        onFolderClick={handleFolderClick}
       />
     </aside>
 
@@ -183,6 +187,13 @@
     onSave={handleSavePreferences}
     onClose={() => (showPreferencesModal = false)}
   />
+
+  <LanguageModal
+    show={showLanguageModal}
+    currentLanguage={preferences.language}
+    onSelectLanguage={handleSelectLanguage}
+    onClose={() => (showLanguageModal = false)}
+  />
 </div>
 
 <style>
@@ -202,7 +213,7 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 
   :global(body) {
@@ -210,6 +221,7 @@
     color: var(--text);
     height: 100vh;
     overflow: hidden;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 
   .app-layout {
@@ -226,14 +238,14 @@
   }
 
   .sidebar-panel {
-    width: 380px;
-    min-width: 380px;
+    width: 360px;
+    min-width: 360px;
     background: var(--panel);
     border-right: 1px solid var(--panel-border);
     display: flex;
     flex-direction: column;
-    padding: 20px;
-    gap: 18px;
+    padding: 18px;
+    gap: 16px;
     overflow-y: auto;
   }
 

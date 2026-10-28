@@ -46,7 +46,7 @@
           </svg>
           <span>{t(localPrefs.language, "prefTitle")}</span>
         </div>
-        <button class="close-btn" on:click={onClose} title="Kapat">✕</button>
+        <button class="close-btn" on:click={onClose} title="Close">✕</button>
       </div>
 
       <div class="modal-body">
@@ -105,21 +105,31 @@
         <!-- Varsayılan Köşe -->
         <div class="pref-group">
           <div class="group-title">{t(localPrefs.language, "prefDefaults")}</div>
-          <label class="pref-label" for="corner-select">{t(localPrefs.language, "prefDefaultCorner")}</label>
+          <div class="pref-label">{t(localPrefs.language, "prefDefaultCorner")}</div>
           <div class="pill-group">
             <button
               class="pill-btn"
               class:active={localPrefs.defaultCorners === "sharp"}
               on:click={() => (localPrefs.defaultCorners = "sharp")}
             >
-              {t(localPrefs.language, "cornerSharp")}
+              <div class="pill-icon-text">
+                <svg viewBox="0 0 24 24" class="option-icon">
+                  <path d="M4 4v16h16v-2H6V4H4z"/>
+                </svg>
+                <span>{t(localPrefs.language, "cornerSharp")}</span>
+              </div>
             </button>
             <button
               class="pill-btn"
               class:active={localPrefs.defaultCorners === "smooth"}
               on:click={() => (localPrefs.defaultCorners = "smooth")}
             >
-              {t(localPrefs.language, "cornerSmooth")}
+              <div class="pill-icon-text">
+                <svg viewBox="0 0 24 24" class="option-icon">
+                  <path d="M4 18c4-12 12-12 16 0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+                <span>{t(localPrefs.language, "cornerSmooth")}</span>
+              </div>
             </button>
           </div>
         </div>
@@ -162,6 +172,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    font-family: inherit;
   }
   .modal-header {
     background: #0f172a;
@@ -176,7 +187,7 @@
     align-items: center;
     gap: 10px;
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: var(--text);
   }
   .title-icon {
@@ -193,6 +204,7 @@
     padding: 4px 8px;
     border-radius: 4px;
     transition: all 0.15s;
+    font-family: inherit;
   }
   .close-btn:hover {
     color: var(--text);
@@ -212,7 +224,7 @@
     gap: 6px;
   }
   .group-title {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
     color: var(--text-muted);
     font-weight: 700;
@@ -238,6 +250,7 @@
     font-size: 0.85rem;
     outline: none;
     transition: border-color 0.15s;
+    font-family: inherit;
   }
   .text-input:focus {
     border-color: var(--accent);
@@ -264,12 +277,23 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    font-family: inherit;
+  }
+  .pill-icon-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .option-icon {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
   }
   .pill-btn.active {
     background: var(--accent);
     color: #042f2e;
     border-color: var(--accent);
-    font-weight: 700;
+    font-weight: 600;
   }
   .pill-sub {
     font-size: 0.7rem;
@@ -288,9 +312,10 @@
     border-radius: 6px;
     padding: 8px 16px;
     font-size: 0.82rem;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.15s;
+    font-family: inherit;
   }
   .btn-primary {
     background: var(--accent);

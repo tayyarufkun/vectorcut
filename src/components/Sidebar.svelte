@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { listQuickFolders } from "../lib/api";
   import { t, type Language } from "../lib/i18n";
 
   export let language: Language = "en";
@@ -13,20 +11,6 @@
 
   export let onConvert: () => void;
   export let onParamChange: () => void;
-  export let onFolderClick: (folder: string) => void;
-
-  let quickFolders: string[] = [];
-
-  onMount(async () => {
-    try {
-      const folders = await listQuickFolders();
-      if (folders && folders.length > 0) {
-        quickFolders = folders;
-      }
-    } catch {
-      // Fallback
-    }
-  });
 
   function setMode(m: "centerline" | "outline") {
     mode = m;
@@ -55,25 +39,11 @@
 </script>
 
 <div class="sidebar-content">
-  <!-- Hızlı Masaüstü Klasörleri -->
-  {#if quickFolders.length > 0}
-    <div class="sidebar-section">
-      <div class="section-title">{t(language, "quickFoldersTitle")}</div>
-      <div class="folder-list">
-        {#each quickFolders as folder}
-          <button class="folder-btn" on:click={() => onFolderClick(folder)}>
-            📁 {folder}
-          </button>
-        {/each}
-      </div>
-    </div>
-  {/if}
-
   <!-- Vektör Parametreleri -->
   <div class="card">
-    <div class="section-title" style="margin-bottom: 12px;">{t(language, "parametersTitle")}</div>
+    <div class="section-title">{t(language, "parametersTitle")}</div>
 
-    <!-- Mod -->
+    <!-- Mod Seçimi -->
     <div class="control-label">{t(language, "modeLabel")}</div>
     <div class="pill-group">
       <button
@@ -81,7 +51,12 @@
         class:active={mode === "centerline"}
         on:click={() => setMode("centerline")}
       >
-        <b>{t(language, "modeCenterline")}</b>
+        <div class="pill-header">
+          <svg viewBox="0 0 24 24" class="pill-icon">
+            <path d="M3 12h18v2H3z"/>
+          </svg>
+          <b>{t(language, "modeCenterline")}</b>
+        </div>
         <span class="pill-desc">{t(language, "modeCenterlineSub")}</span>
       </button>
       <button
@@ -89,7 +64,12 @@
         class:active={mode === "outline"}
         on:click={() => setMode("outline")}
       >
-        <b>{t(language, "modeOutline")}</b>
+        <div class="pill-header">
+          <svg viewBox="0 0 24 24" class="pill-icon">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+          </svg>
+          <b>{t(language, "modeOutline")}</b>
+        </div>
         <span class="pill-desc">{t(language, "modeOutlineSub")}</span>
       </button>
     </div>
@@ -102,7 +82,12 @@
         class:active={corners === "sharp"}
         on:click={() => setCorners("sharp")}
       >
-        <b>{t(language, "cornerSharp")}</b>
+        <div class="pill-header">
+          <svg viewBox="0 0 24 24" class="pill-icon">
+            <path d="M4 4v16h16v-2H6V4H4z"/>
+          </svg>
+          <b>{t(language, "cornerSharp")}</b>
+        </div>
         <span class="pill-desc">{t(language, "cornerSharpSub")}</span>
       </button>
       <button
@@ -110,12 +95,17 @@
         class:active={corners === "smooth"}
         on:click={() => setCorners("smooth")}
       >
-        <b>{t(language, "cornerSmooth")}</b>
+        <div class="pill-header">
+          <svg viewBox="0 0 24 24" class="pill-icon">
+            <path d="M4 18c4-12 12-12 16 0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <b>{t(language, "cornerSmooth")}</b>
+        </div>
         <span class="pill-desc">{t(language, "cornerSmoothSub")}</span>
       </button>
     </div>
 
-    <!-- Eşik Değeri -->
+    <!-- Eşik Değeri (Threshold) -->
     <div style="margin-top: 16px;">
       <div class="slider-row">
         <label for="threshold-slider" class="control-label">{t(language, "thresholdLabel")}</label>
@@ -139,6 +129,9 @@
           checked={autocrop}
           on:change={(e) => toggleAutoCrop(e.currentTarget.checked)}
         />
+        <svg viewBox="0 0 24 24" class="check-opt-icon">
+          <path d="M17 15h2V7c0-1.1-.9-2-2-2H9v2h8v8zM7 17V1H5v4H1v2h4v10c0 1.1.9 2 2 2h10v4h2v-4h4v-2H7z"/>
+        </svg>
         <span>{t(language, "autoCropLabel")}</span>
       </label>
       <div class="checkbox-hint">
@@ -151,6 +144,9 @@
           checked={addFrame}
           on:change={(e) => toggleAddFrame(e.currentTarget.checked)}
         />
+        <svg viewBox="0 0 24 24" class="check-opt-icon">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+        </svg>
         <span>{t(language, "addFrameLabel")}</span>
       </label>
       <div class="checkbox-hint">
@@ -165,6 +161,9 @@
       <span class="spinner"></span>
       <span>{t(language, "btnGenerating")}</span>
     {:else}
+      <svg viewBox="0 0 24 24" class="btn-icon">
+        <path d="M8 5v14l11-7z"/>
+      </svg>
       <span>{t(language, "btnGenerate")}</span>
     {/if}
   </button>
@@ -174,40 +173,15 @@
   .sidebar-content {
     display: flex;
     flex-direction: column;
-    gap: 18px;
-  }
-  .sidebar-section {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    gap: 16px;
   }
   .section-title {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
     color: var(--text-muted);
     font-weight: 700;
     letter-spacing: 0.5px;
-  }
-  .folder-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .folder-btn {
-    background: #0f172a;
-    border: 1px solid var(--panel-border);
-    color: var(--text);
-    font-size: 0.8rem;
-    padding: 6px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.15s;
-    user-select: none;
-  }
-  .folder-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: rgba(56, 189, 248, 0.05);
+    margin-bottom: 12px;
   }
   .card {
     background: #182234;
@@ -220,6 +194,7 @@
     font-weight: 600;
     display: block;
     margin-bottom: 6px;
+    color: var(--text);
   }
   .pill-group {
     display: flex;
@@ -240,6 +215,17 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    font-family: inherit;
+  }
+  .pill-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pill-icon {
+    width: 15px;
+    height: 15px;
+    fill: currentColor;
   }
   .pill-btn.active {
     background: var(--accent);
@@ -248,9 +234,10 @@
     box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
   }
   .pill-desc {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     opacity: 0.85;
-    margin-top: 2px;
+    margin-top: 3px;
+    font-weight: 400;
   }
   .slider-row {
     display: flex;
@@ -291,6 +278,11 @@
     height: 16px;
     cursor: pointer;
   }
+  .check-opt-icon {
+    width: 14px;
+    height: 14px;
+    fill: var(--text-muted);
+  }
   .checkbox-hint {
     font-size: 0.7rem;
     color: var(--text-muted);
@@ -299,8 +291,9 @@
   .btn {
     border: none;
     border-radius: 8px;
-    padding: 13px;
-    font-weight: 700;
+    padding: 12px;
+    font-weight: 600;
+    font-size: 0.88rem;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -308,6 +301,7 @@
     gap: 8px;
     transition: all 0.2s;
     user-select: none;
+    font-family: inherit;
   }
   .btn-convert {
     background: var(--accent);
@@ -322,6 +316,11 @@
   .btn-convert:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+  .btn-icon {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
   }
   .spinner {
     width: 16px;
