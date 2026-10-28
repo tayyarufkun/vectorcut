@@ -65,6 +65,7 @@
     }
   }
 
+  // Mod değiştiğinde
   $: if (viewMode) {
     tick().then(() => {
       initViewers();
@@ -72,15 +73,30 @@
     });
   }
 
-  $: if (svgContent || originalDataUri) {
+  // Yeni görsel veya SVG geldiğinde
+  $: if (originalDataUri) {
     tick().then(() => {
-      if (viewMode === "split") {
+      setTimeout(() => {
         origViewer?.fitToView();
-        svgViewer?.fitToView();
-      } else {
         overlayViewer?.fitToView();
-      }
+      }, 50);
     });
+  }
+
+  $: if (svgContent) {
+    tick().then(() => {
+      setTimeout(() => {
+        svgViewer?.fitToView();
+        overlayViewer?.fitToView();
+      }, 50);
+    });
+  }
+
+  function handleImageLoad() {
+    setTimeout(() => {
+      origViewer?.fitToView();
+      overlayViewer?.fitToView();
+    }, 20);
   }
 </script>
 
@@ -94,12 +110,24 @@
             <span class="title-bold">{t(language, "originalDrawing")}</span>
             <span class="meta-label">{originalFileName || "-"}</span>
           </div>
-          <ZoomControls {language} viewer={origViewer} zoomBadgeText={origBadgeText} />
+          <ZoomControls
+            {language}
+            zoomBadgeText={origBadgeText}
+            onZoomIn={() => origViewer?.zoomStep(1)}
+            onZoomOut={() => origViewer?.zoomStep(-1)}
+            onFit={() => origViewer?.fitToView()}
+            onReset={() => origViewer?.reset()}
+          />
         </div>
         <div class="preview-body" bind:this={origContainerEl}>
           <div class="panzoom-content" bind:this={origContentEl}>
             {#if originalDataUri}
-              <img src={originalDataUri} alt={t(language, "originalDrawing")} />
+              <img
+                src={originalDataUri}
+                alt={t(language, "originalDrawing")}
+                on:load={handleImageLoad}
+                draggable="false"
+              />
             {:else}
               <div class="placeholder">
                 <svg viewBox="0 0 24 24" class="ph-icon">
@@ -121,12 +149,21 @@
               <span class="status-ready">✓ {t(language, "readyBadge")}</span>
             {/if}
           </div>
-          <ZoomControls {language} viewer={svgViewer} zoomBadgeText={svgBadgeText} />
+          <ZoomControls
+            {language}
+            zoomBadgeText={svgBadgeText}
+            onZoomIn={() => svgViewer?.zoomStep(1)}
+            onZoomOut={() => svgViewer?.zoomStep(-1)}
+            onFit={() => svgViewer?.fitToView()}
+            onReset={() => svgViewer?.reset()}
+          />
         </div>
         <div class="preview-body" bind:this={svgContainerEl}>
           <div class="panzoom-content" bind:this={svgContentEl}>
             {#if svgContent}
-              {@html svgContent}
+              <div class="svg-host" draggable="false">
+                {@html svgContent}
+              </div>
             {:else}
               <div class="placeholder">
                 <svg viewBox="0 0 24 24" class="ph-icon">
@@ -140,23 +177,36 @@
       </div>
     </div>
   {:else}
-    <!-- Overlay Modu (Vektör Hizalama / Çizim Karşılaştırma) -->
+    <!-- Overlay Modu (Vektör Hizalama / Katman Bindirme) -->
     <div class="preview-panel preview-overlay">
       <div class="preview-header">
         <div class="header-title">
           <span class="title-bold laser-text">{t(language, "overlayTitle")}</span>
           <span class="meta-label">{t(language, "overlaySubtitle")}</span>
         </div>
-        <ZoomControls {language} viewer={overlayViewer} zoomBadgeText={overlayBadgeText} />
+        <ZoomControls
+          {language}
+          zoomBadgeText={overlayBadgeText}
+          onZoomIn={() => overlayViewer?.zoomStep(1)}
+          onZoomOut={() => overlayViewer?.zoomStep(-1)}
+          onFit={() => overlayViewer?.fitToView()}
+          onReset={() => overlayViewer?.reset()}
+        />
       </div>
       <div class="preview-body" bind:this={overlayContainerEl}>
         <div class="panzoom-content" bind:this={overlayContentEl}>
           <div class="overlay-wrapper">
             {#if originalDataUri}
-              <img src={originalDataUri} alt="Original Layer" class="overlay-bg" />
+              <img
+                src={originalDataUri}
+                alt="Original Layer"
+                class="overlay-bg"
+                on:load={handleImageLoad}
+                draggable="false"
+              />
             {/if}
             {#if svgContent}
-              <div class="overlay-svg">
+              <div class="overlay-svg" draggable="false">
                 {@html svgContent}
               </div>
             {:else if !originalDataUri}
@@ -238,9 +288,7 @@
     overflow: hidden;
     cursor: grab;
     user-select: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    -webkit-user-select: none;
     background-image:
       linear-gradient(45deg, #f8fafc 25%, transparent 25%),
       linear-gradient(-45deg, #f8fafc 25%, transparent 25%),
@@ -254,24 +302,41 @@
   }
   .panzoom-content {
     position: absolute;
+    top: 0;
+    left: 0;
     transform-origin: 0 0;
     will-change: transform;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
-  .panzoom-content :global(*) {
-    pointer-events: auto;
+  .panzoom-content img {
+    display: block;
+    max-width: none;
+    max-height: none;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.12));
   }
-  .panzoom-content :global(svg),
-  .panzoom-content :global(img) {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.12));
+  .svg-host {
+    display: block;
+    pointer-events: none;
+    user-select: none;
+  }
+  .svg-host :global(svg) {
+    display: block;
+    max-width: none;
+    max-height: none;
+    pointer-events: none;
+    user-select: none;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.12));
   }
   .placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -280,6 +345,9 @@
     font-size: 0.85rem;
     text-align: center;
     padding: 20px;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
   }
   .ph-icon {
     width: 36px;
@@ -288,19 +356,29 @@
   }
   .overlay-wrapper {
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
+    user-select: none;
+    pointer-events: none;
   }
   .overlay-bg {
-    position: absolute;
-    max-width: 100%;
-    max-height: 100%;
+    display: block;
     opacity: 0.45;
+    pointer-events: none;
+    -webkit-user-drag: none;
   }
   .overlay-svg {
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     z-index: 2;
+    pointer-events: none;
+  }
+  .overlay-svg :global(svg) {
+    width: 100%;
+    height: 100%;
+    display: block;
   }
   .overlay-svg :global(svg path),
   .overlay-svg :global(svg rect) {

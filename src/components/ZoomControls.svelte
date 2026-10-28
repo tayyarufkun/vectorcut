@@ -1,34 +1,20 @@
 <script lang="ts">
-  import type { PanZoomViewer } from "../lib/panzoom";
   import { t, type Language } from "../lib/i18n";
 
   export let language: Language = "en";
-  export let viewer: PanZoomViewer | null = null;
   export let zoomBadgeText: string = "100%";
-
-  function zoomOut() {
-    viewer?.zoomStep(-1);
-  }
-
-  function zoomIn() {
-    viewer?.zoomStep(1);
-  }
-
-  function fit() {
-    viewer?.fitToView();
-  }
-
-  function reset() {
-    viewer?.reset();
-  }
+  export let onZoomIn: () => void;
+  export let onZoomOut: () => void;
+  export let onFit: () => void;
+  export let onReset: () => void;
 </script>
 
 <div class="zoom-tools">
-  <button class="zoom-btn" on:click={zoomOut} title={t(language, "zoomOut")}>−</button>
+  <button class="zoom-btn" on:click={onZoomOut} title={t(language, "zoomOut")}>−</button>
   <span class="zoom-badge">{zoomBadgeText}</span>
-  <button class="zoom-btn" on:click={zoomIn} title={t(language, "zoomIn")}>+</button>
-  <button class="zoom-btn btn-text" on:click={fit} title={t(language, "zoomFit")}>{t(language, "zoomFit")}</button>
-  <button class="zoom-btn btn-text" on:click={reset} title={t(language, "zoomReset")}>1:1</button>
+  <button class="zoom-btn" on:click={onZoomIn} title={t(language, "zoomIn")}>+</button>
+  <button class="zoom-btn btn-text" on:click={onFit} title={t(language, "zoomFit")}>⊡ {t(language, "zoomFit")}</button>
+  <button class="zoom-btn btn-text" on:click={onReset} title={t(language, "zoomReset")}>1:1</button>
 </div>
 
 <style>
@@ -55,6 +41,7 @@
     justify-content: center;
     transition: background 0.1s, border-color 0.1s;
     height: 22px;
+    font-family: inherit;
   }
   .zoom-btn:hover {
     background: #f8fafc;
@@ -70,5 +57,6 @@
     color: #475569;
     min-width: 44px;
     text-align: center;
+    font-family: inherit;
   }
 </style>
