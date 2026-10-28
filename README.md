@@ -51,29 +51,27 @@ Standard vectorizers (like Potrace or typical image-trace tools) wrap around the
 
 ---
 
-## 🔬 Showcase & Visual Comparisons
+## 🔬 Visual Comparisons & Showcases
 
-### 1. Complex Real-World Photo: Standard Tracing vs. AI LineArt
-Standard thresholding fails on photos because surface shadows and gradients become solid black blobs. With VectorCut's AI LineArt, structural architectural lines, ladders, and window openings are cleanly isolated:
+### 1. 🧠 AI LineArt Extension (Real-World Photo to Clean Vector)
+Standard thresholding fails on real-world photographs because surface textures, lighting gradients, and shadows become dense, unusable noise. VectorCut's pure-Rust AI LineArt extension isolates clean, machine-ready geometric contours:
 
-![Treehouse Photo Comparison](docs/images/ai_treehouse_comparison.png)
-> **Left:** Original 3D Cardboard Treehouse Photo &nbsp;|&nbsp; **Middle:** Without AI (Blocked Shadows & Dense Noise) &nbsp;|&nbsp; **Right:** VectorCut AI LineArt (Crisp Vector Paths)
+<p align="center">
+  <img src="docs/images/extension.jpeg" alt="VectorCut AI LineArt Extension Comparison" width="100%" />
+</p>
 
----
-
-### 2. Trace Modes: Single Line (Centerline) vs. Outer Contour (Outline)
-Choose between single medial-axis strokes for CNC routing/pen drawing or closed silhouette perimeters for laser/vinyl cutting:
-
-![Plant Trace Modes Comparison](docs/images/plant_trace_modes_comparison.png)
-> **Left:** Original Plant Drawing &nbsp;|&nbsp; **Middle:** Single-Line Centerline (1 Stroke) &nbsp;|&nbsp; **Right:** Outer Contour (Silhouette Boundary)
+> **📷 Original Photo** *(Left)* &nbsp;→&nbsp; **Standard Tracing Without AI** *(Middle: blocked shadows & dense artifact noise)* &nbsp;→&nbsp; **✨ VectorCut AI Extension** *(Right: clean, crisp structural vector paths)*
 
 ---
 
-### 3. Full-Color 3D Object to Vector Line Art
-Even colorful clay and foam sculptures with soft pastel gradients are effortlessly converted into machine-ready vector paths:
+### 2. 📐 Trace Modes: Single Line (Centerline) vs. Outer Contour (Outline)
+Choose between single medial-axis strokes for CNC routing/pen plotting or closed silhouette perimeters for laser/vinyl cutting:
 
-![Foam Sculpture AI Vector](docs/images/ai_sculpture_comparison.png)
-> **Left:** Original Color Sculpture Photo &nbsp;|&nbsp; **Right:** VectorCut AI Vector Output
+<p align="center">
+  <img src="docs/images/plant_trace_modes_comparison.png" alt="Trace Modes: Single Line vs Outer Contour" width="100%" />
+</p>
+
+> **Original Drawing** *(Left)* &nbsp;|&nbsp; **Single-Line Centerline** *(Middle: 1 stroke per stem, zero double-burns)* &nbsp;|&nbsp; **Outer Contour** *(Right: boundary silhouettes for cutting)*
 
 ---
 
