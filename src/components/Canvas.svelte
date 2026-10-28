@@ -55,6 +55,9 @@
     };
   });
 
+  let lastLoadedUri: string | null = null;
+  let hasAutoFitSvg: boolean = false;
+
   export async function resetViewports() {
     await tick();
     if (viewMode === "split") {
@@ -65,16 +68,21 @@
     }
   }
 
-  // Mod değiştiğinde
+  // Görünüm modu değiştiğinde (Split / Overlay)
   $: if (viewMode) {
     tick().then(() => {
       initViewers();
-      resetViewports();
+      // Mod değişirken mevcut zoom durumunu koruyarak yeniden uygula
+      origViewer?.applyTransform();
+      svgViewer?.applyTransform();
+      overlayViewer?.applyTransform();
     });
   }
 
-  // Yeni görsel veya SVG geldiğinde
-  $: if (originalDataUri) {
+  // YALNIZCA yeni bir görsel/dosya seçildiğinde fitToView yap
+  $: if (originalDataUri && originalDataUri !== lastLoadedUri) {
+    lastLoadedUri = originalDataUri;
+    hasAutoFitSvg = false;
     tick().then(() => {
       setTimeout(() => {
         origViewer?.fitToView();
@@ -83,20 +91,32 @@
     });
   }
 
+  // SVG güncellendiğinde:
+  // Eğer bu yeni dosyanın ilk SVG çıktısı ise sığdır,
+  // AYAR DEĞİŞİKLİKLERİNDE ise kullanıcının mevcut zoom seviyesini ve konumunu koru!
   $: if (svgContent) {
     tick().then(() => {
-      setTimeout(() => {
-        svgViewer?.fitToView();
-        overlayViewer?.fitToView();
-      }, 50);
+      if (!hasAutoFitSvg) {
+        hasAutoFitSvg = true;
+        setTimeout(() => {
+          svgViewer?.fitToView();
+          overlayViewer?.fitToView();
+        }, 50);
+      } else {
+        // Mevcut zoom ve pan konumunu aynen koru
+        svgViewer?.applyTransform();
+        overlayViewer?.applyTransform();
+      }
     });
   }
 
   function handleImageLoad() {
-    setTimeout(() => {
-      origViewer?.fitToView();
-      overlayViewer?.fitToView();
-    }, 20);
+    if (originalDataUri && originalDataUri !== lastLoadedUri) {
+      setTimeout(() => {
+        origViewer?.fitToView();
+        overlayViewer?.fitToView();
+      }, 30);
+    }
   }
 </script>
 
