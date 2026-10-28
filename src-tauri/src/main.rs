@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod ai_lineart;
 mod autocrop;
 mod image_proc;
 mod pdf;
@@ -10,7 +11,7 @@ use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::{Path, PathBuf};
+use tauri::{AppHandle, Emitter};
 use tracer::{CornerType, TraceMode, TraceOptions};
 
 #[derive(Debug, Deserialize)]
@@ -20,6 +21,7 @@ pub struct ConvertRequest {
     pub threshold: Option<u8>,
     pub autocrop: Option<bool>,
     pub add_frame: Option<bool>,
+    pub use_ai: Option<bool>,
     pub base64: Option<String>,
     pub file_path: Option<String>,
 }
@@ -64,9 +66,10 @@ fn convert_image(request: ConvertRequest) -> Result<ConvertResponse, String> {
     let threshold = request.threshold.unwrap_or(210);
     let should_autocrop = request.autocrop.unwrap_or(true);
     let add_frame = request.add_frame.unwrap_or(false);
+    let use_ai = request.use_ai.unwrap_or(false);
 
     // Baytları al
-    let bytes = if let Some(b64) = request.base64 {
+    let mut bytes = if let Some(b64) = request.base64 {
         let clean_b64 = if let Some(idx) = b64.find(',') {
             &b64[idx + 1..]
         } else {
@@ -74,11 +77,11 @@ fn convert_image(request: ConvertRequest) -> Result<ConvertResponse, String> {
         };
         BASE64
             .decode(clean_b64.trim())
-            .map_err(|e| format!("Base64 çözülemedi: {}", e))?
+            .map_err(|e| format!("Base64 decoding failed: {}", e))?
     } else if let Some(fp) = request.file_path {
-        fs::read(&fp).map_err(|e| format!("Dosya okunamadı: {}", e))?
+        fs::read(&fp).map_err(|e| format!("File could not be read: {}", e))?
     } else {
-        return Err("Görsel verisi sağlanmadı".into());
+        return Err("No image data provided".into());
     };
 
     // PDF Kontrolü
@@ -90,6 +93,13 @@ fn convert_image(request: ConvertRequest) -> Result<ConvertResponse, String> {
                 width: 800,
                 height: 600,
             });
+        }
+    }
+
+    // AI LineArt Ön İşleme (Eğer seçilmişse)
+    if use_ai {
+        if let Ok(processed_bytes) = ai_lineart::run_ai_lineart(&bytes) {
+            bytes = processed_bytes;
         }
     }
 
@@ -123,10 +133,39 @@ fn convert_image(request: ConvertRequest) -> Result<ConvertResponse, String> {
 }
 
 #[tauri::command]
+fn get_ai_status() -> ai_lineart::ModelStatus {
+    ai_lineart::check_model_status()
+}
+
+#[tauri::command]
+fn download_ai_model(app_handle: AppHandle) -> Result<(), String> {
+    std::thread::spawn(move || {
+        let handle = app_handle.clone();
+        let res = ai_lineart::download_lineart_model(move |progress| {
+            let _ = handle.emit("ai-model-download-progress", progress);
+        });
+        match res {
+            Ok(_) => {
+                let _ = app_handle.emit("ai-model-download-complete", true);
+            }
+            Err(e) => {
+                let _ = app_handle.emit("ai-model-download-error", e);
+            }
+        }
+    });
+    Ok(())
+}
+
+#[tauri::command]
+fn delete_ai_model() -> Result<(), String> {
+    ai_lineart::remove_model()
+}
+
+#[tauri::command]
 fn pick_file() -> Result<FilePickResponse, String> {
     let file = rfd::FileDialog::new()
-        .add_filter("Görsel ve PDF Çizimleri", &["png", "jpg", "jpeg", "pdf", "PNG", "JPG", "JPEG", "PDF"])
-        .set_title("Lazer Kesim Çizimi Seçin")
+        .add_filter("Drawings & Images", &["png", "jpg", "jpeg", "pdf", "PNG", "JPG", "JPEG", "PDF"])
+        .set_title("Select Drawing or Image")
         .pick_file();
 
     if let Some(path) = file {
@@ -134,9 +173,9 @@ fn pick_file() -> Result<FilePickResponse, String> {
         let file_name = path
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_else(|| "cizim".into());
+            .unwrap_or_else(|| "drawing".into());
 
-        let bytes = fs::read(&path).map_err(|e| format!("Dosya okunamadı: {}", e))?;
+        let bytes = fs::read(&path).map_err(|e| format!("Could not read file: {}", e))?;
         let is_pdf = path_str.to_lowercase().ends_with(".pdf");
 
         let mime = if is_pdf {
@@ -175,7 +214,7 @@ fn save_svg_dialog(
     svg_content: String,
     default_filename: Option<String>,
 ) -> Result<SaveResponse, String> {
-    let def_name = default_filename.unwrap_or_else(|| "luban_tek_hat.svg".into());
+    let def_name = default_filename.unwrap_or_else(|| "drawing_centerline.svg".into());
     let def_name = if !def_name.to_lowercase().ends_with(".svg") {
         format!("{}.svg", def_name)
     } else {
@@ -183,9 +222,9 @@ fn save_svg_dialog(
     };
 
     let file = rfd::FileDialog::new()
-        .add_filter("SVG Kesim Dosyası", &["svg"])
+        .add_filter("SVG Vector File", &["svg"])
         .set_file_name(&def_name)
-        .set_title("Luban SVG Dosyasını Kaydet")
+        .set_title("Export SVG File")
         .save_file();
 
     if let Some(mut path) = file {
@@ -193,7 +232,7 @@ fn save_svg_dialog(
             path.set_extension("svg");
         }
         fs::write(&path, svg_content.as_bytes())
-            .map_err(|e| format!("Dosya kaydedilemedi: {}", e))?;
+            .map_err(|e| format!("Could not save file: {}", e))?;
 
         Ok(SaveResponse {
             success: true,
@@ -209,77 +248,16 @@ fn save_svg_dialog(
     }
 }
 
-#[tauri::command]
-fn list_quick_folders() -> Vec<String> {
-    let mut folders = Vec::new();
-    if let Some(home) = dirs_next_desktop() {
-        let lazer_dir = home.join("Lazer");
-        if lazer_dir.exists() && lazer_dir.is_dir() {
-            if let Ok(entries) = fs::read_dir(lazer_dir) {
-                for entry in entries.flatten() {
-                    if let Ok(ft) = entry.file_type() {
-                        if ft.is_dir() {
-                            let name = entry.file_name().to_string_lossy().to_string();
-                            if !name.starts_with('.') && name != "app" && !name.ends_with(".app") {
-                                folders.push(name);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    folders.sort();
-    folders
-}
-
-#[tauri::command]
-fn load_image_file(path_str: String) -> Result<FilePickResponse, String> {
-    let path = Path::new(&path_str);
-    if !path.exists() {
-        return Err("Dosya bulunamadı".into());
-    }
-    let bytes = fs::read(path).map_err(|e| format!("Dosya okunamadı: {}", e))?;
-    let file_name = path
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| "cizim".into());
-
-    let is_pdf = path_str.to_lowercase().ends_with(".pdf");
-    let mime = if is_pdf {
-        "application/pdf"
-    } else if path_str.to_lowercase().ends_with(".png") {
-        "image/png"
-    } else {
-        "image/jpeg"
-    };
-
-    let b64 = BASE64.encode(&bytes);
-    let data_uri = format!("data:{};base64,{}", mime, b64);
-
-    Ok(FilePickResponse {
-        success: true,
-        cancelled: false,
-        file_path: Some(path_str),
-        file_name: Some(file_name),
-        is_pdf,
-        data_uri: Some(data_uri),
-    })
-}
-
-fn dirs_next_desktop() -> Option<PathBuf> {
-    std::env::var_os("HOME").map(|h| PathBuf::from(h).join("Desktop"))
-}
-
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             convert_image,
+            get_ai_status,
+            download_ai_model,
+            delete_ai_model,
             pick_file,
-            save_svg_dialog,
-            list_quick_folders,
-            load_image_file
+            save_svg_dialog
         ])
         .run(tauri::generate_context!())
-        .expect("Tauri uygulaması başlatılırken hata oluştu");
+        .expect("Failed to run VectorCut Tauri application");
 }

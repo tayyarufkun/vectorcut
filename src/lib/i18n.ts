@@ -37,6 +37,13 @@ export const translations = {
     autoCropHint: "Trims empty outer margins and snaps SVG bounds to the drawing.",
     addFrameLabel: "Add Perimeter Frame",
     addFrameHint: "Adds an outer rectangular boundary frame around the design.",
+    
+    // AI LineArt
+    aiToggleLabel: "AI LineArt (Multi-Color / Photos)",
+    aiToggleHint: "Uses AI line extraction for complex, multi-colored drawings and photos.",
+    aiModelRequired: "Model download required",
+    aiBtnDownloadModel: "Download AI Model (~25 MB)",
+
     btnGenerate: "Generate SVG Path",
     btnGenerating: "Processing...",
 
@@ -67,6 +74,16 @@ export const translations = {
     prefOutlineSuffixHint: "Appended to filename in Outline mode (e.g. '_outline')",
     prefDefaults: "Default Conversion Options",
     prefDefaultCorner: "Default Corner Style",
+    
+    // AI Preferences
+    prefAiSection: "AI Model Extension (Optional)",
+    prefAiDescription: "Optional pure-Rust ONNX model that isolates clean line art from full-color photos and illustrations.",
+    prefAiStatusReady: "LineArt Model is installed and active.",
+    prefAiStatusNotInstalled: "Model is not installed (0 MB used).",
+    prefAiDownloading: "Downloading AI model...",
+    prefAiDeleteBtn: "Remove AI Model",
+    prefAiDownloadBtn: "Download AI Extension (~25 MB)",
+
     prefReset: "Reset Defaults",
     prefSave: "Save & Close",
     prefSavedToast: "Preferences saved successfully",
@@ -107,6 +124,13 @@ export const translations = {
     autoCropHint: "Gereksiz dış boşlukları atar, SVG sınırını çizime sıfırlar.",
     addFrameLabel: "Dış Çevre Çerçevesi Ekle",
     addFrameHint: "Çizimin en dış sınırlarını çevreleyen bir dikdörtgen ekler.",
+
+    // AI LineArt
+    aiToggleLabel: "AI LineArt (Çok Renkli / Fotoğraf)",
+    aiToggleHint: "Karmaşık ve renkli görselleri yapay zeka ile saf çizgiye dönüştürür.",
+    aiModelRequired: "Model indirilmesi gerekiyor",
+    aiBtnDownloadModel: "AI Modelini İndir (~25 MB)",
+
     btnGenerate: "Vektör SVG Oluştur",
     btnGenerating: "Dönüştürülüyor...",
 
@@ -137,6 +161,16 @@ export const translations = {
     prefOutlineSuffixHint: "Kontur modunda dosya adına eklenir (örn: '_outline')",
     prefDefaults: "Varsayılan Parametreler",
     prefDefaultCorner: "Varsayılan Köşe Yapısı",
+
+    // AI Preferences
+    prefAiSection: "Yapay Zeka Eklentisi (İsteğe Bağlı)",
+    prefAiDescription: "Renkli fotoğraflardan ve karmaşık çizimlerden saf çizgi sanatı (line art) çıkaran saf Rust ONNX modeli.",
+    prefAiStatusReady: "LineArt Yapay Zeka Modeli yüklü ve aktif.",
+    prefAiStatusNotInstalled: "Model yüklü değil (0 MB yer kaplar).",
+    prefAiDownloading: "Yapay zeka modeli indiriliyor...",
+    prefAiDeleteBtn: "Modeli Sil",
+    prefAiDownloadBtn: "AI Eklentisini İndir (~25 MB)",
+
     prefReset: "Varsayılana Sıfırla",
     prefSave: "Kaydet & Kapat",
     prefSavedToast: "Tercihler başarıyla kaydedildi",

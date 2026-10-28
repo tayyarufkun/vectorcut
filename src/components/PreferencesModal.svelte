@@ -4,8 +4,15 @@
 
   export let show: boolean = false;
   export let preferences: AppPreferences;
+  export let aiInstalled: boolean = false;
+  export let aiSizeMb: number = 0;
+  export let aiPath: string = "";
+  export let aiDownloading: boolean = false;
+  export let aiProgress: number = 0;
   export let onSave: (newPrefs: AppPreferences) => void;
   export let onClose: () => void;
+  export let onDownloadAi: () => void;
+  export let onDeleteAi: () => void;
 
   let localPrefs: AppPreferences = { ...preferences };
 
@@ -133,6 +140,55 @@
             </button>
           </div>
         </div>
+
+        <!-- AI Model Eklentisi -->
+        <div class="pref-group">
+          <div class="group-title">{t(localPrefs.language, "prefAiSection")}</div>
+          <div class="hint" style="margin-bottom: 8px;">
+            {t(localPrefs.language, "prefAiDescription")}
+          </div>
+
+          <div class="ai-pref-card">
+            <div class="ai-status-row">
+              <div class="status-indicator-dot" class:online={aiInstalled}></div>
+              <div class="ai-status-info">
+                {#if aiInstalled}
+                  <div class="ai-status-title">{t(localPrefs.language, "prefAiStatusReady")}</div>
+                  <div class="ai-status-sub">{aiSizeMb.toFixed(1)} MB • {aiPath}</div>
+                {:else}
+                  <div class="ai-status-title">{t(localPrefs.language, "prefAiStatusNotInstalled")}</div>
+                  <div class="ai-status-sub">{t(localPrefs.language, "aiModelRequired")}</div>
+                {/if}
+              </div>
+            </div>
+
+            {#if aiDownloading}
+              <div class="ai-download-progress-wrap">
+                <div class="ai-progress-track">
+                  <div class="ai-progress-fill" style="width: {Math.round(aiProgress * 100)}%;"></div>
+                </div>
+                <div class="ai-progress-info">
+                  <span>{t(localPrefs.language, "prefAiDownloading")}</span>
+                  <span>{Math.round(aiProgress * 100)}%</span>
+                </div>
+              </div>
+            {:else if aiInstalled}
+              <button class="btn btn-danger-outline" on:click={onDeleteAi}>
+                <svg viewBox="0 0 24 24" class="btn-icon-sm">
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                </svg>
+                <span>{t(localPrefs.language, "prefAiDeleteBtn")}</span>
+              </button>
+            {:else}
+              <button class="btn btn-accent-fill" on:click={onDownloadAi}>
+                <svg viewBox="0 0 24 24" class="btn-icon-sm">
+                  <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                </svg>
+                <span>{t(localPrefs.language, "prefAiDownloadBtn")}</span>
+              </button>
+            {/if}
+          </div>
+        </div>
       </div>
 
       <div class="modal-footer">
@@ -166,7 +222,7 @@
     background: #1e293b;
     border: 1px solid #334155;
     border-radius: 12px;
-    width: 480px;
+    width: 500px;
     max-width: 90vw;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
     display: flex;
@@ -258,6 +314,7 @@
   .hint {
     font-size: 0.72rem;
     color: var(--text-muted);
+    line-height: 1.35;
   }
   .pill-group {
     display: flex;
@@ -299,6 +356,112 @@
     font-size: 0.7rem;
     opacity: 0.8;
   }
+
+  /* AI Settings Section */
+  .ai-pref-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .ai-status-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .status-indicator-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #64748b;
+  }
+  .status-indicator-dot.online {
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+  }
+  .ai-status-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .ai-status-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .ai-status-sub {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+  .ai-download-progress-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ai-progress-track {
+    width: 100%;
+    height: 6px;
+    background: #1e293b;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .ai-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.2s ease;
+  }
+  .ai-progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .btn-icon-sm {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+  }
+  .btn-accent-fill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--accent);
+    color: #042f2e;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-accent-fill:hover {
+    background: var(--accent-hover);
+  }
+  .btn-danger-outline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid #ef4444;
+    color: #ef4444;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-danger-outline:hover {
+    background: rgba(239, 68, 68, 0.1);
+  }
+
   .modal-footer {
     background: #0f172a;
     padding: 12px 20px;

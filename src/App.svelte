@@ -6,7 +6,17 @@
   import Canvas from "./components/Canvas.svelte";
   import PreferencesModal from "./components/PreferencesModal.svelte";
   import LanguageModal from "./components/LanguageModal.svelte";
-  import { convertImage, saveSvgDialog } from "./lib/api";
+  import {
+    convertImage,
+    saveSvgDialog,
+    getAiStatus,
+    downloadAiModel,
+    deleteAiModel,
+    onAiDownloadProgress,
+    onAiDownloadComplete,
+    onAiDownloadError,
+    type ModelStatus,
+  } from "./lib/api";
   import { loadPreferences, savePreferences, type AppPreferences } from "./lib/preferences";
   import { t, type Language } from "./lib/i18n";
 
@@ -25,6 +35,11 @@
   let threshold: number = preferences.defaultThreshold || 210;
   let autocrop: boolean = preferences.defaultAutoCrop ?? true;
   let addFrame: boolean = preferences.defaultAddFrame ?? false;
+  let useAi: boolean = false;
+
+  let aiModelStatus: ModelStatus = { installed: false, path: "", size_mb: 0 };
+  let aiDownloading: boolean = false;
+  let aiProgress: number = 0;
 
   let viewMode: "split" | "overlay" = "split";
   let isProcessing: boolean = false;
@@ -39,7 +54,73 @@
     threshold = preferences.defaultThreshold;
     autocrop = preferences.defaultAutoCrop;
     addFrame = preferences.defaultAddFrame;
+
+    checkAiStatus();
+
+    // Event dinleyicileri
+    let unlistenProgress: () => void;
+    let unlistenComplete: () => void;
+    let unlistenError: () => void;
+
+    onAiDownloadProgress((prog) => {
+      aiDownloading = true;
+      aiProgress = prog;
+    }).then((un) => (unlistenProgress = un));
+
+    onAiDownloadComplete(() => {
+      aiDownloading = false;
+      aiProgress = 1.0;
+      checkAiStatus();
+      triggerToast(t(preferences.language, "statusSuccess"));
+      if (originalDataUri || originalFilePath) {
+        runConversion();
+      }
+    }).then((un) => (unlistenComplete = un));
+
+    onAiDownloadError((err) => {
+      aiDownloading = false;
+      triggerToast(`AI Download Error: ${err}`);
+    }).then((un) => (unlistenError = un));
+
+    return () => {
+      if (unlistenProgress) unlistenProgress();
+      if (unlistenComplete) unlistenComplete();
+      if (unlistenError) unlistenError();
+    };
   });
+
+  async function checkAiStatus() {
+    try {
+      const status = await getAiStatus();
+      aiModelStatus = status;
+    } catch (e) {
+      console.warn("Could not check AI status:", e);
+    }
+  }
+
+  async function handleDownloadAi() {
+    aiDownloading = true;
+    aiProgress = 0.01;
+    try {
+      await downloadAiModel();
+    } catch (e: any) {
+      aiDownloading = false;
+      triggerToast(`AI Error: ${e?.message || e}`);
+    }
+  }
+
+  async function handleDeleteAi() {
+    try {
+      await deleteAiModel();
+      await checkAiStatus();
+      triggerToast(t(preferences.language, "statusSuccess"));
+      if (useAi && (originalDataUri || originalFilePath)) {
+        runConversion();
+      }
+    } catch (e: any) {
+      triggerToast(`Error: ${e?.message || e}`);
+    }
+  }
 
   function triggerToast(msg: string) {
     toastMessage = msg;
@@ -89,6 +170,7 @@
         addFrame,
         base64: originalDataUri || undefined,
         filePath: originalFilePath,
+        useAi,
       });
 
       if (res && res.success && res.svg) {
@@ -164,9 +246,14 @@
         bind:threshold
         bind:autocrop
         bind:addFrame
+        bind:useAi
+        aiInstalled={aiModelStatus.installed}
+        {aiDownloading}
+        {aiProgress}
         {isProcessing}
         onConvert={runConversion}
         onParamChange={runConversion}
+        onDownloadAi={handleDownloadAi}
       />
     </aside>
 
@@ -184,8 +271,15 @@
   <PreferencesModal
     show={showPreferencesModal}
     {preferences}
+    aiInstalled={aiModelStatus.installed}
+    aiSizeMb={aiModelStatus.size_mb}
+    aiPath={aiModelStatus.path}
+    {aiDownloading}
+    {aiProgress}
     onSave={handleSavePreferences}
     onClose={() => (showPreferencesModal = false)}
+    onDownloadAi={handleDownloadAi}
+    onDeleteAi={handleDeleteAi}
   />
 
   <LanguageModal

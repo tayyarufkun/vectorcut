@@ -20,6 +20,7 @@ export interface ConvertOptions {
   addFrame: boolean;
   base64?: string;
   filePath?: string;
+  useAi?: boolean;
 }
 
 export interface ConvertResult {
@@ -44,6 +45,12 @@ export interface SaveSvgResult {
   savedPath?: string;
 }
 
+export interface ModelStatus {
+  installed: boolean;
+  path: string;
+  size_mb: number;
+}
+
 export async function convertImage(options: ConvertOptions): Promise<ConvertResult> {
   const invoke = await getInvoke();
   if (invoke) {
@@ -56,6 +63,7 @@ export async function convertImage(options: ConvertOptions): Promise<ConvertResu
         add_frame: options.addFrame,
         base64: options.base64,
         file_path: options.filePath,
+        use_ai: options.useAi || false,
       },
     });
   }
@@ -70,7 +78,7 @@ export async function pickFile(): Promise<PickFileResult> {
   throw new Error("Tauri API kullanılamıyor");
 }
 
-export async function saveSvgDialog(svgContent: String, defaultFilename?: string): Promise<SaveSvgResult> {
+export async function saveSvgDialog(svgContent: string, defaultFilename?: string): Promise<SaveSvgResult> {
   const invoke = await getInvoke();
   if (invoke) {
     return await invoke<SaveSvgResult>("save_svg_dialog", {
@@ -81,10 +89,57 @@ export async function saveSvgDialog(svgContent: String, defaultFilename?: string
   throw new Error("Tauri API kullanılamıyor");
 }
 
-export async function listQuickFolders(): Promise<string[]> {
+export async function getAiStatus(): Promise<ModelStatus> {
   const invoke = await getInvoke();
   if (invoke) {
-    return await invoke<string[]>("list_quick_folders");
+    return await invoke<ModelStatus>("get_ai_status");
   }
-  return ["Teleferik", "Vosvos", "Kauçuk Baskı"];
+  return { installed: false, path: "", size_mb: 0 };
+}
+
+export async function downloadAiModel(): Promise<void> {
+  const invoke = await getInvoke();
+  if (invoke) {
+    return await invoke<void>("download_ai_model");
+  }
+}
+
+export async function deleteAiModel(): Promise<void> {
+  const invoke = await getInvoke();
+  if (invoke) {
+    return await invoke<void>("delete_ai_model");
+  }
+}
+
+export async function onAiDownloadProgress(callback: (progress: number) => void): Promise<() => void> {
+  try {
+    const { listen } = await import("@tauri-apps/api/event");
+    return await listen<number>("ai-model-download-progress", (event) => {
+      callback(event.payload);
+    });
+  } catch {
+    return () => {};
+  }
+}
+
+export async function onAiDownloadComplete(callback: () => void): Promise<() => void> {
+  try {
+    const { listen } = await import("@tauri-apps/api/event");
+    return await listen("ai-model-download-complete", () => {
+      callback();
+    });
+  } catch {
+    return () => {};
+  }
+}
+
+export async function onAiDownloadError(callback: (err: string) => void): Promise<() => void> {
+  try {
+    const { listen } = await import("@tauri-apps/api/event");
+    return await listen<string>("ai-model-download-error", (event) => {
+      callback(event.payload);
+    });
+  } catch {
+    return () => {};
+  }
 }

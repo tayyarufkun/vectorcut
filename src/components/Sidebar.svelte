@@ -7,10 +7,15 @@
   export let threshold: number = 210;
   export let autocrop: boolean = true;
   export let addFrame: boolean = false;
+  export let useAi: boolean = false;
+  export let aiInstalled: boolean = false;
+  export let aiDownloading: boolean = false;
+  export let aiProgress: number = 0;
   export let isProcessing: boolean = false;
 
   export let onConvert: () => void;
   export let onParamChange: () => void;
+  export let onDownloadAi: () => void;
 
   function setMode(m: "centerline" | "outline") {
     mode = m;
@@ -34,6 +39,11 @@
 
   function toggleAddFrame(val: boolean) {
     addFrame = val;
+    onParamChange();
+  }
+
+  function toggleUseAi(val: boolean) {
+    useAi = val;
     onParamChange();
   }
 </script>
@@ -152,6 +162,46 @@
       <div class="checkbox-hint">
         {t(language, "addFrameHint")}
       </div>
+    </div>
+
+    <!-- AI LineArt (Çok Renkli / Fotoğraf) -->
+    <div class="checkbox-group ai-group">
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          checked={useAi}
+          on:change={(e) => toggleUseAi(e.currentTarget.checked)}
+        />
+        <svg viewBox="0 0 24 24" class="check-opt-icon ai-sparkle">
+          <path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/>
+        </svg>
+        <span class="ai-label-title">{t(language, "aiToggleLabel")}</span>
+      </label>
+      <div class="checkbox-hint">
+        {t(language, "aiToggleHint")}
+      </div>
+
+      {#if useAi && !aiInstalled}
+        <div class="ai-download-box">
+          {#if aiDownloading}
+            <div class="ai-progress-container">
+              <div class="ai-progress-bar" style="width: {Math.round(aiProgress * 100)}%;"></div>
+            </div>
+            <span class="ai-download-txt">{t(language, "prefAiDownloading")} {Math.round(aiProgress * 100)}%</span>
+          {:else}
+            <div class="ai-not-installed-msg">
+              <span class="warn-badge">!</span>
+              <span>{t(language, "aiModelRequired")}</span>
+            </div>
+            <button class="btn-ai-download" on:click={onDownloadAi}>
+              <svg viewBox="0 0 24 24" class="download-icon">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+              </svg>
+              <span>{t(language, "aiBtnDownloadModel")}</span>
+            </button>
+          {/if}
+        </div>
+      {/if}
     </div>
   </div>
 
@@ -283,11 +333,98 @@
     height: 14px;
     fill: var(--text-muted);
   }
+  .ai-sparkle {
+    fill: #38bdf8;
+  }
+  .ai-label-title {
+    color: #38bdf8;
+    font-weight: 700;
+  }
   .checkbox-hint {
     font-size: 0.7rem;
     color: var(--text-muted);
     margin-left: 24px;
   }
+
+  .ai-group {
+    background: rgba(56, 189, 248, 0.04);
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    margin-top: 14px;
+  }
+  .ai-download-box {
+    margin-top: 8px;
+    padding: 10px;
+    background: #0f172a;
+    border: 1px dashed rgba(56, 189, 248, 0.4);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ai-not-installed-msg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: #f59e0b;
+  }
+  .warn-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #f59e0b;
+    color: #000;
+    font-weight: bold;
+    font-size: 0.7rem;
+  }
+  .btn-ai-download {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-ai-download:hover {
+    background: var(--accent);
+    color: #042f2e;
+  }
+  .download-icon {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+  }
+  .ai-progress-container {
+    width: 100%;
+    height: 6px;
+    background: #1e293b;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .ai-progress-bar {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.2s ease;
+  }
+  .ai-download-txt {
+    font-size: 0.72rem;
+    color: var(--accent);
+    text-align: center;
+    font-weight: 600;
+  }
+
   .btn {
     border: none;
     border-radius: 8px;
