@@ -65,6 +65,10 @@ export const translations = {
 
     // Preferences Modal
     prefTitle: "Preferences",
+    tabGeneral: "General",
+    tabExport: "Export",
+    tabAi: "AI Extension",
+    tabAbout: "About",
     prefGeneral: "General Settings",
     prefLanguage: "Interface Language",
     prefFileNaming: "Export File Suffixes",
@@ -82,7 +86,11 @@ export const translations = {
     prefAiStatusNotInstalled: "Model is not installed (0 MB used).",
     prefAiDownloading: "Downloading AI model...",
     prefAiDeleteBtn: "Remove AI Model",
-    prefAiDownloadBtn: "Download AI Extension (~25 MB)",
+    prefAiDownloadBtn: "Download AI Extension (~16 MB)",
+    prefAboutDesc: "High-performance vector converter for CNC machines, laser cutters, pen plotters, and vinyl cutters.",
+    prefAboutVersion: "Version",
+    prefAboutLicense: "License: MIT (Open Source)",
+    prefAboutGithub: "GitHub Repository",
 
     prefReset: "Reset Defaults",
     prefSave: "Save & Close",
@@ -152,6 +160,10 @@ export const translations = {
 
     // Preferences Modal
     prefTitle: "Tercihler",
+    tabGeneral: "Genel",
+    tabExport: "Dışa Aktarma",
+    tabAi: "AI Eklentisi",
+    tabAbout: "Hakkında",
     prefGeneral: "Genel Ayarlar",
     prefLanguage: "Arayüz Dili",
     prefFileNaming: "Dışa Aktarılan Dosya Ekleri",
@@ -169,7 +181,11 @@ export const translations = {
     prefAiStatusNotInstalled: "Model yüklü değil (0 MB yer kaplar).",
     prefAiDownloading: "Yapay zeka modeli indiriliyor...",
     prefAiDeleteBtn: "Modeli Sil",
-    prefAiDownloadBtn: "AI Eklentisini İndir (~25 MB)",
+    prefAiDownloadBtn: "AI Eklentisini İndir (~16 MB)",
+    prefAboutDesc: "CNC tezgahları, lazer kesiciler, kalem plotterlar ve folyo kesiciler için yüksek performanslı vektör dönüştürücü.",
+    prefAboutVersion: "Sürüm",
+    prefAboutLicense: "Lisans: MIT (Açık Kaynak)",
+    prefAboutGithub: "GitHub Deposu",
 
     prefReset: "Varsayılana Sıfırla",
     prefSave: "Kaydet & Kapat",
