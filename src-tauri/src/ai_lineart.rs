@@ -6,9 +6,8 @@ use std::path::PathBuf;
 use tract_onnx::prelude::*;
 
 const MODEL_FILENAME: &str = "lineart_sketch.onnx";
-// HuggingFace üzerinde barındırılan optimize hafif Sketch/LineArt ONNX modeli
 const MODEL_DOWNLOAD_URL: &str =
-    "https://huggingface.co/lllyasviel/ControlNet/resolve/main/annotator/ckpts/sketch_lines.onnx";
+    "https://huggingface.co/Luoaho/image-to-line-drawing-onnx/resolve/main/line-drawings.onnx";
 
 #[derive(Serialize, Clone, Debug)]
 pub struct ModelStatus {
@@ -70,6 +69,8 @@ where
     let temp_path = dir.join(format!("{}.tmp", MODEL_FILENAME));
 
     let client = reqwest::blocking::Client::builder()
+        .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
+        .redirect(reqwest::redirect::Policy::limited(10))
         .timeout(std::time::Duration::from_secs(300))
         .build()
         .map_err(|e| format!("İstemci hatası: {}", e))?;
@@ -86,11 +87,13 @@ where
         ));
     }
 
-    let total_size = response.content_length().unwrap_or(25_000_000) as f32;
+    let total_size = response.content_length().unwrap_or(17_193_338) as f32;
     let mut downloaded = 0.0;
     let mut file = File::create(&temp_path).map_err(|e| format!("Geçici dosya oluşturulamadı: {}", e))?;
 
-    let mut buffer = [0u8; 16384];
+    let mut buffer = [0u8; 65536];
+    let mut last_reported_pct = -1;
+
     loop {
         let bytes_read = response
             .read(&mut buffer)
@@ -102,8 +105,14 @@ where
             .map_err(|e| format!("Yazma hatası: {}", e))?;
         downloaded += bytes_read as f32;
         let progress = (downloaded / total_size).min(1.0);
-        progress_callback(progress);
+        let pct = (progress * 100.0) as i32;
+        if pct != last_reported_pct {
+            last_reported_pct = pct;
+            progress_callback(progress);
+        }
     }
+
+    progress_callback(1.0);
 
     // Dosyayı asıl hedefe taşı
     if target_path.exists() {
@@ -209,7 +218,7 @@ pub fn run_ai_lineart(image_bytes: &[u8]) -> Result<Vec<u8>, String> {
     for y in 0..model_size {
         for x in 0..model_size {
             let val = output[[0, 0, y as usize, x as usize]];
-            let pixel_val = ((1.0 - val.clamp(0.0, 1.0)) * 255.0) as u8;
+            let pixel_val = (val.clamp(0.0, 1.0) * 255.0) as u8;
             out_gray.put_pixel(x, y, Luma([pixel_val]));
         }
     }

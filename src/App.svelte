@@ -79,6 +79,7 @@
 
     onAiDownloadError((err) => {
       aiDownloading = false;
+      aiProgress = 0;
       triggerToast(`AI Download Error: ${err}`);
     }).then((un) => (unlistenError = un));
 
@@ -100,7 +101,7 @@
 
   async function handleDownloadAi() {
     aiDownloading = true;
-    aiProgress = 0.01;
+    aiProgress = 0.0;
     try {
       await downloadAiModel();
     } catch (e: any) {
