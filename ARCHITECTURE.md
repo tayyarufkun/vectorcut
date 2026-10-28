@@ -1,28 +1,29 @@
-# VectorCut (svgapp) — Mimari ve Yeniden Yapılandırma Yol Haritası
+# VectorCut Studio — Technical Architecture & Specifications
 
-Bu belge, uygulamanın tek kaynaklı (monolitik) prototip halinden **Tauri (Rust) + Svelte (Vite)** mimarisiyle modern, modüler ve çapraz platformlu (macOS, Windows, Linux) profesyonel bir açık kaynak masaüstü uygulamasına dönüştürülme planını içerir.
+This document outlines the modern, cross-platform architecture of **VectorCut Studio**, built with **Tauri v2 (Rust)** and **Svelte 5 (Vite)**.
 
 ---
 
-## 1. Mimari Genel Bakış
+## 1. System Architecture
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────┐
-│                   TAURI MASAÜSTÜ (macOS, Windows, Linux)              │
+│                   TAURI SHELL (macOS, Windows, Linux)                  │
 ├───────────────────────────────────┬────────────────────────────────────┤
-│      FRONTEND (Svelte + Vite)     │         BACKEND (Rust Core)        │
+│      FRONTEND (Svelte 5 + Vite)   │         BACKEND (Rust Core)        │
 │                                   │                                    │
 │  • src/components/                │  • src-tauri/src/                  │
-│    ├── Dropzone.svelte (Dosya)    │    ├── main.rs (Pencere & IPC)     │
-│    ├── Sidebar.svelte (Ayarlar)   │    ├── image_proc.rs (Eşikleme)    │
-│    ├── Canvas.svelte (Pan & Zoom) │    ├── tracer.rs (Centerline & Cut)│
-│    └── Toolbar.svelte (Kaydetme)  │    ├── pdf_parser.rs (Kayıpsız PDF)│
-│  • src/lib/panzoom.ts             │    └── autocrop.rs (Sıkı Çerçeve)  │
-│                                   │                                    │
-│  Tüy gibi hafif, 0 KB runtime      │  Sıfır Kurulum, %100 Bağımsız      │
+│    ├── Canvas.svelte (Pan & Zoom) │    ├── main.rs (IPC & native OS)   │
+│    ├── Dropzone.svelte (Input)    │    ├── image_proc.rs (Binarize)    │
+│    ├── Sidebar.svelte (Params)    │    ├── tracer.rs (Thinning & RDP)  │
+│    ├── Toolbar.svelte (Actions)   │    ├── pdf.rs (Vector parser)      │
+│    ├── PreferencesModal.svelte    │    └── autocrop.rs (Bounding box)  │
+│    └── LanguageModal.svelte       │                                    │
+│  • src/lib/panzoom.ts             │  Zero external binaries            │
+│  • src/lib/i18n.ts                │  Blazing-fast native speed         │
 └───────────────────────────────────┴────────────────────────────────────┘
                                     │
-                         Otomatik GitHub Actions
+                        GitHub Actions Workflows
                 ┌───────────────────┼───────────────────┐
                 ▼                   ▼                   ▼
            macOS (.dmg)       Windows (.exe)       Linux (.AppImage)
@@ -30,78 +31,29 @@ Bu belge, uygulamanın tek kaynaklı (monolitik) prototip halinden **Tauri (Rust
 
 ---
 
-## 2. Dizin Yapısı (Modüler Tasarım)
+## 2. Core Modules
 
-```text
-app/
-├── .github/
-│   └── workflows/
-│       └── release.yml          # Otomatik Mac (.dmg) ve Windows (.exe) derleme
-├── src/                         # Svelte Frontend
-│   ├── assets/
-│   │   └── logo.svg
-│   ├── components/
-│   │   ├── Dropzone.svelte      # Dosya sürükle-bırak ve Finder seçimi
-│   │   ├── Sidebar.svelte       # Dik/Yay köşe, eşikleme, çerçeve ayarları
-│   │   ├── Canvas.svelte        # Canlı lazer simülasyonu ve önizleme
-│   │   ├── ZoomControls.svelte  # Yakınlaştırma, uzaklaştırma, sığdır butonları
-│   │   └── Toolbar.svelte       # Dışa aktarma ve Luban SVG kaydetme
-│   ├── lib/
-│   │   ├── panzoom.ts           # Mouse ile kaydırma & tekerlekle zoom motoru
-│   │   └── api.ts               # Rust arka planı ile iletişim (Tauri IPC)
-│   ├── App.svelte               # Ana uygulama çatısı
-│   └── main.ts                  # Frontend başlangıç noktası
-├── src-tauri/                   # Rust Backend (Sıfır Kurulum Çekirdeği)
-│   ├── Cargo.toml               # Rust bağımlılıkları (image, resvg, tauri)
-│   ├── tauri.conf.json          # Uygulama pencere ve kimlik yapılandırması
-│   ├── icons/                   # Uygulama ikonları (.icns, .ico, .png)
-│   └── src/
-│       ├── main.rs              # Uygulama başlangıcı ve Tauri komutları
-│       ├── image_proc.rs        # Görüntü filtreleme, alfa temizleme, binarizasyon
-│       ├── autocrop.rs          # Çizimin dışındaki boş alanları sıkı kırpma
-│       ├── tracer.rs            # Tek hat (centerline) ve dış kontur algoritması
-│       └── pdf.rs               # Vektörel PDF dosyalarını kayıpsız SVG'ye çevirme
-├── package.json                 # Frontend bağımlılıkları (Svelte, Vite, TypeScript)
-├── vite.config.ts               # Vite yapılandırması
-├── README.md                    # Proje tanıtım ve kurulum dokümanı
-└── LICENSE                      # MIT Açık Kaynak Lisansı
-```
-
----
-
-## 3. Temel Bileşenler ve Görevleri
-
-### A. Rust Çekirdeği (Backend)
+### A. Rust Core (`src-tauri/`)
 1. **`image_proc.rs`**:  
-   Kullanıcının yüklediği görseli (`PNG`, `JPG`) alır, şeffaflığı temizler, kontrastı artırır ve kullanıcının seçtiği eşik değerine (Threshold) göre saf siyah-beyaza dönüştürür.
+   Performs alpha blending over white backgrounds, calculates perceptual luminance, and binarizes the raster drawing according to user threshold sensitivity.
 2. **`autocrop.rs`**:  
-   Çizimin piksellerini tarayarak en dış koordinatları (`min_x, min_y, max_x, max_y`) tespit eder. Dışarıdaki gereksiz boşlukları kırpar.
+   Extracts strict pixel bounding box coordinates (`min_x, min_y, max_x, max_y`) and eliminates blank margins with padding.
 3. **`tracer.rs`**:  
-   Piksellerin ortasından tek bir hat (centerline) geçirir. Köşe parametrelerine göre (`sharp` veya `smooth`):
-   * `sharp`: 90 derece dik köşeleri korur (`L` hatları).
-   * `smooth`: Organik yayları Bezier eğrilerine (`C`) çevirir.
-   Çıkan çizgilere `fill="none" stroke="#000000" stroke-width="0.5"` stillerini ekler.
+   * **Zhang-Suen Thinning Algorithm**: Iteratively erodes contour pixels to derive a 1-pixel medial axis skeleton.
+   * **Graph & Path Extraction**: Traverses endpoints, junctions, and closed cycles into discrete polylines.
+   * **Ramer-Douglas-Peucker (RDP)**: 
+     * `sharp`: Preserves true 90-degree orthogonal lines.
+     * `smooth`: Transforms organic curvature into smooth Bezier paths.
+   * Formats into compliant SVG paths (`fill="none" stroke="#000000" stroke-width="0.5"`).
 4. **`pdf.rs`**:  
-   Vektörel PDF dosyalarını piksellestirmeden doğrudan matematiksel SVG yollarına dönüştürür.
+   Parses vector PDF stream tokens (`m`, `l`, `c`, `re`, `S`) directly into lossless SVG paths without raster sampling loss.
+5. **`main.rs`**:  
+   Handles cross-platform native file selection and "Save As" file pickers via `rfd`.
 
-### B. Svelte Arayüzü (Frontend)
+### B. Svelte Frontend (`src/`)
 1. **`Canvas.svelte` & `panzoom.ts`**:  
-   Farenin sol tuşuyla tut-kaydır (Pan) ve tekerlekle %3000'e kadar yakınlaş (Zoom) desteği. Yan yana ve üst üste bindirme (overlay) modları.
+   Hardware-accelerated Pan & Zoom with persistent viewport coordinates during parameter tweaks.
 2. **`Sidebar.svelte`**:  
-   * Tek Hat (Centerline) / Dış Kontur (Outline) modu
-   * Dik Köşeler / Yay modu
-   * Boşlukları Kırp (Sıkı Çerçeve) / Dış Kesim Çerçevesi Ekle seçenekleri
-   * Eşik değeri kaydırıcısı
-3. **`Toolbar.svelte`**:  
-   Doğrudan işletim sisteminin yerel **"Farklı Kaydet (Save As)"** penceresini tetikler.
-
----
-
-## 4. GitHub Dağıtım ve Yayınlama (CI/CD)
-
-GitHub Actions iş akışı (`release.yml`), her yeni sürüm etiketinde (örn: `v1.0.0`) şunları otomatik üretir:
-* **macOS:** `VectorCut-x64.dmg` ve `VectorCut-aarch64.dmg` (Apple Silicon M1/M2/M3/M4)
-* **Windows:** `VectorCut-x64-setup.exe` ve `VectorCut-x64.msi`
-* **Linux:** `VectorCut-amd64.AppImage` ve `.deb`
-
-Kullanıcılar terminal açmadan, tek tıkla indirip çift tıklayarak kullanabilir.
+   Single-line vs. outline modes, sharp vs. smooth geometry, binarization threshold, auto-crop, and perimeter framing.
+3. **`PreferencesModal.svelte` & `LanguageModal.svelte`**:  
+   Persistent settings stored in `localStorage` for export suffixes and interface languages (English / Turkish).
