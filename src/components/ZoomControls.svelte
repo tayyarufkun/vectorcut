@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { PanZoomViewer } from "../lib/panzoom";
+  import { t, type Language } from "../lib/i18n";
 
+  export let language: Language = "en";
   export let viewer: PanZoomViewer | null = null;
   export let zoomBadgeText: string = "100%";
 
@@ -22,11 +24,11 @@
 </script>
 
 <div class="zoom-tools">
-  <button class="zoom-btn" on:click={zoomOut} title="Uzaklaştır">−</button>
+  <button class="zoom-btn" on:click={zoomOut} title={t(language, "zoomOut")}>−</button>
   <span class="zoom-badge">{zoomBadgeText}</span>
-  <button class="zoom-btn" on:click={zoomIn} title="Yakınlaştır">+</button>
-  <button class="zoom-btn btn-text" on:click={fit} title="Ekrana Sığdır">⊡ Sığdır</button>
-  <button class="zoom-btn btn-text" on:click={reset} title="1:1 Gerçek Boyut">1:1</button>
+  <button class="zoom-btn" on:click={zoomIn} title={t(language, "zoomIn")}>+</button>
+  <button class="zoom-btn btn-text" on:click={fit} title={t(language, "zoomFit")}>{t(language, "zoomFit")}</button>
+  <button class="zoom-btn btn-text" on:click={reset} title={t(language, "zoomReset")}>1:1</button>
 </div>
 
 <style>

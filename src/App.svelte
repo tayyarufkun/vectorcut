@@ -1,9 +1,16 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import Toolbar from "./components/Toolbar.svelte";
   import Dropzone from "./components/Dropzone.svelte";
   import Sidebar from "./components/Sidebar.svelte";
   import Canvas from "./components/Canvas.svelte";
+  import PreferencesModal from "./components/PreferencesModal.svelte";
   import { convertImage, saveSvgDialog } from "./lib/api";
+  import { loadPreferences, savePreferences, type AppPreferences } from "./lib/preferences";
+  import { t } from "./lib/i18n";
+
+  let preferences: AppPreferences = loadPreferences();
+  let showPreferencesModal: boolean = false;
 
   let originalDataUri: string | null = null;
   let originalFileName: string = "";
@@ -12,10 +19,10 @@
   let svgContent: string | null = null;
 
   let mode: "centerline" | "outline" = "centerline";
-  let corners: "sharp" | "smooth" = "sharp";
-  let threshold: number = 210;
-  let autocrop: boolean = true;
-  let addFrame: boolean = false;
+  let corners: "sharp" | "smooth" = preferences.defaultCorners || "sharp";
+  let threshold: number = preferences.defaultThreshold || 210;
+  let autocrop: boolean = preferences.defaultAutoCrop ?? true;
+  let addFrame: boolean = preferences.defaultAddFrame ?? false;
 
   let viewMode: "split" | "overlay" = "split";
   let isProcessing: boolean = false;
@@ -24,6 +31,14 @@
   let toastMessage: string = "";
   let toastTimer: any = null;
 
+  onMount(() => {
+    preferences = loadPreferences();
+    corners = preferences.defaultCorners;
+    threshold = preferences.defaultThreshold;
+    autocrop = preferences.defaultAutoCrop;
+    addFrame = preferences.defaultAddFrame;
+  });
+
   function triggerToast(msg: string) {
     toastMessage = msg;
     showToast = true;
@@ -31,6 +46,12 @@
     toastTimer = setTimeout(() => {
       showToast = false;
     }, 3500);
+  }
+
+  function handleSavePreferences(newPrefs: AppPreferences) {
+    preferences = newPrefs;
+    savePreferences(newPrefs);
+    triggerToast(t(preferences.language, "prefSavedToast"));
   }
 
   function handleFileSelected(data: {
@@ -44,7 +65,6 @@
     originalDataUri = data.dataUri || null;
     isPdf = data.isPdf;
 
-    // Otomatik dönüştür
     runConversion();
   }
 
@@ -65,11 +85,11 @@
 
       if (res && res.success && res.svg) {
         svgContent = res.svg;
-        triggerToast("✓ Tek Hat SVG Başarıyla Oluşturuldu!");
+        triggerToast(t(preferences.language, "statusConverted"));
       }
     } catch (err: any) {
-      console.error("Dönüştürme hatası:", err);
-      triggerToast(`Hata: ${err?.message || err}`);
+      console.error("Conversion error:", err);
+      triggerToast(`Error: ${err?.message || err}`);
     } finally {
       isProcessing = false;
     }
@@ -80,17 +100,23 @@
 
     const baseName = originalFileName
       ? originalFileName.replace(/\.[^/.]+$/, "")
-      : "cizim";
-    const suggested = `${baseName}_luban_tek_hat.svg`;
+      : "drawing";
+
+    const suffix =
+      mode === "centerline"
+        ? preferences.centerlineSuffix || "_centerline"
+        : preferences.outlineSuffix || "_outline";
+
+    const suggested = `${baseName}${suffix}.svg`;
 
     try {
       const res = await saveSvgDialog(svgContent, suggested);
       if (res.success && res.saved_path) {
-        triggerToast("✓ SVG Başarıyla Kaydedildi!");
+        triggerToast(t(preferences.language, "statusSaved"));
       }
     } catch (err: any) {
-      console.error("Kaydetme hatası:", err);
-      // Web tarayıcısı fallback
+      console.error("Save error:", err);
+      // Browser fallback
       const blob = new Blob([svgContent], { type: "image/svg+xml" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -98,32 +124,36 @@
       a.download = suggested;
       a.click();
       URL.revokeObjectURL(url);
-      triggerToast("✓ SVG İndirildi!");
+      triggerToast(t(preferences.language, "statusSaved"));
     }
   }
 
   function handleFolderClick(folder: string) {
-    triggerToast(`"${folder}" klasöründen çizim yüklemek için Görsel Seç'i kullanabilirsiniz.`);
+    triggerToast(`Folder: ${folder}`);
   }
 </script>
 
 <div class="app-layout">
   <Toolbar
+    language={preferences.language}
     {viewMode}
     hasSvg={!!svgContent}
     {toastMessage}
     {showToast}
     onViewModeChange={(m) => (viewMode = m)}
     onDownload={handleDownload}
+    onOpenPreferences={() => (showPreferencesModal = true)}
   />
 
   <div class="main-container">
     <aside class="sidebar-panel">
       <Dropzone
+        language={preferences.language}
         fileName={originalFileName}
         onFileSelected={handleFileSelected}
       />
       <Sidebar
+        language={preferences.language}
         bind:mode
         bind:corners
         bind:threshold
@@ -138,6 +168,7 @@
 
     <main class="content-panel">
       <Canvas
+        language={preferences.language}
         {originalDataUri}
         {originalFileName}
         {svgContent}
@@ -145,6 +176,13 @@
       />
     </main>
   </div>
+
+  <PreferencesModal
+    show={showPreferencesModal}
+    {preferences}
+    onSave={handleSavePreferences}
+    onClose={() => (showPreferencesModal = false)}
+  />
 </div>
 
 <style>

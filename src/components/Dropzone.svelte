@@ -1,6 +1,8 @@
 <script lang="ts">
   import { pickFile } from "../lib/api";
+  import { t, type Language } from "../lib/i18n";
 
+  export let language: Language = "en";
   export let fileName: string = "";
   export let onFileSelected: (data: {
     fileName: string;
@@ -16,15 +18,14 @@
       const res = await pickFile();
       if (res.success && res.data_uri) {
         onFileSelected({
-          fileName: res.file_name || "cizim",
+          fileName: res.file_name || "drawing",
           filePath: res.file_path,
           dataUri: res.data_uri,
           isPdf: res.is_pdf,
         });
       }
     } catch (err) {
-      console.error("Dosya seçimi açılamadı, yerel dosya inputuna yönlendiriliyor:", err);
-      // Yerel input fallback
+      console.error("Native file picker failed, fallback to input element:", err);
       fileInputElement?.click();
     }
   }
@@ -62,7 +63,7 @@
 </script>
 
 <div class="dropzone-wrapper">
-  <div class="section-title">Görsel / PDF Çizim Seç</div>
+  <div class="section-title">{t(language, "dropzoneTitle")}</div>
   <div
     class="dropzone"
     class:dragover={isDragOver}
@@ -80,9 +81,9 @@
       />
     </svg>
     <div class="file-name-label">
-      {fileName || "Görsel veya PDF Seçmek İçin Tıklayın"}
+      {fileName || t(language, "dropzonePrompt")}
     </div>
-    <div class="sub-label">PNG, JPG, PDF Sürükleyip Bırakabilirsiniz</div>
+    <div class="sub-label">{t(language, "dropzoneSub")}</div>
   </div>
   <input
     type="file"

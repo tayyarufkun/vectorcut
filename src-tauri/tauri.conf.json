@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "VectorCut Studio - Lazer Kesim için Tek Hat SVG Dönüştürücü",
+        "title": "VectorCut Studio - Universal Vector & SVG Converter",
         "width": 1280,
         "height": 840,
         "minWidth": 980,

@@ -2,7 +2,9 @@
   import { onMount, tick } from "svelte";
   import { PanZoomViewer } from "../lib/panzoom";
   import ZoomControls from "./ZoomControls.svelte";
+  import { t, type Language } from "../lib/i18n";
 
+  export let language: Language = "en";
   export let originalDataUri: string | null = null;
   export let originalFileName: string = "";
   export let svgContent: string | null = null;
@@ -63,7 +65,6 @@
     }
   }
 
-  // viewMode değiştikçe viewerları yeniden kur
   $: if (viewMode) {
     tick().then(() => {
       initViewers();
@@ -71,7 +72,6 @@
     });
   }
 
-  // Yeni içerik gelince fitToView
   $: if (svgContent || originalDataUri) {
     tick().then(() => {
       if (viewMode === "split") {
@@ -91,37 +91,37 @@
       <div class="preview-panel">
         <div class="preview-header">
           <div class="header-title">
-            <span class="title-bold">ORİJİNAL ÇİZİM</span>
+            <span class="title-bold">{t(language, "originalDrawing")}</span>
             <span class="meta-label">{originalFileName || "-"}</span>
           </div>
-          <ZoomControls viewer={origViewer} zoomBadgeText={origBadgeText} />
+          <ZoomControls {language} viewer={origViewer} zoomBadgeText={origBadgeText} />
         </div>
         <div class="preview-body" bind:this={origContainerEl}>
           <div class="panzoom-content" bind:this={origContentEl}>
             {#if originalDataUri}
-              <img src={originalDataUri} alt="Orijinal Çizim" />
+              <img src={originalDataUri} alt={t(language, "originalDrawing")} />
             {:else}
               <div class="placeholder">
                 <svg viewBox="0 0 24 24" class="ph-icon">
                   <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
                 </svg>
-                <span>Soldaki panelden bir görsel veya PDF seçin</span>
+                <span>{t(language, "dropPlaceholder")}</span>
               </div>
             {/if}
           </div>
         </div>
       </div>
 
-      <!-- LUBAN TEK HAT SVG Paneli -->
+      <!-- Vektör Çıktısı (SVG) Paneli -->
       <div class="preview-panel">
         <div class="preview-header">
           <div class="header-title">
-            <span class="title-bold accent-text">LUBAN KESİM YOLU (TEK HAT SVG)</span>
+            <span class="title-bold accent-text">{t(language, "vectorResult")}</span>
             {#if svgContent}
-              <span class="status-ready">✓ Kesime Hazır</span>
+              <span class="status-ready">✓ {t(language, "readyBadge")}</span>
             {/if}
           </div>
-          <ZoomControls viewer={svgViewer} zoomBadgeText={svgBadgeText} />
+          <ZoomControls {language} viewer={svgViewer} zoomBadgeText={svgBadgeText} />
         </div>
         <div class="preview-body" bind:this={svgContainerEl}>
           <div class="panzoom-content" bind:this={svgContentEl}>
@@ -132,7 +132,7 @@
                 <svg viewBox="0 0 24 24" class="ph-icon">
                   <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
                 </svg>
-                <span>Dönüştürme bekleniyor...</span>
+                <span>{t(language, "waitingPlaceholder")}</span>
               </div>
             {/if}
           </div>
@@ -140,20 +140,20 @@
       </div>
     </div>
   {:else}
-    <!-- Overlay Modu (Lazer Simülasyonu) -->
+    <!-- Overlay Modu (Vektör Hizalama / Çizim Karşılaştırma) -->
     <div class="preview-panel preview-overlay">
       <div class="preview-header">
         <div class="header-title">
-          <span class="title-bold laser-text">LAZER KESİM SİMÜLASYONU (ÜST ÜSTE BİNDİRME)</span>
-          <span class="meta-label">Kırmızı hat: Lazer kesim yolu | Soluk arka plan: Orijinal çizim</span>
+          <span class="title-bold laser-text">{t(language, "overlayTitle")}</span>
+          <span class="meta-label">{t(language, "overlaySubtitle")}</span>
         </div>
-        <ZoomControls viewer={overlayViewer} zoomBadgeText={overlayBadgeText} />
+        <ZoomControls {language} viewer={overlayViewer} zoomBadgeText={overlayBadgeText} />
       </div>
       <div class="preview-body" bind:this={overlayContainerEl}>
         <div class="panzoom-content" bind:this={overlayContentEl}>
           <div class="overlay-wrapper">
             {#if originalDataUri}
-              <img src={originalDataUri} alt="Orijinal Zemin" class="overlay-bg" />
+              <img src={originalDataUri} alt="Original Layer" class="overlay-bg" />
             {/if}
             {#if svgContent}
               <div class="overlay-svg">
@@ -161,7 +161,7 @@
               </div>
             {:else if !originalDataUri}
               <div class="placeholder">
-                <span>Görsel seçildiğinde lazer yolu burada üst üste bindirilecek</span>
+                <span>{t(language, "overlayPlaceholder")}</span>
               </div>
             {/if}
           </div>

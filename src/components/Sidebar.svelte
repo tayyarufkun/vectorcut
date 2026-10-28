@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { listQuickFolders } from "../lib/api";
+  import { t, type Language } from "../lib/i18n";
 
+  export let language: Language = "en";
   export let mode: "centerline" | "outline" = "centerline";
   export let corners: "sharp" | "smooth" = "sharp";
   export let threshold: number = 210;
@@ -13,7 +15,7 @@
   export let onParamChange: () => void;
   export let onFolderClick: (folder: string) => void;
 
-  let quickFolders: string[] = ["Teleferik", "Vosvos", "Kauçuk Baskı"];
+  let quickFolders: string[] = [];
 
   onMount(async () => {
     try {
@@ -56,7 +58,7 @@
   <!-- Hızlı Masaüstü Klasörleri -->
   {#if quickFolders.length > 0}
     <div class="sidebar-section">
-      <div class="section-title">Hızlı Masaüstü Klasörleri</div>
+      <div class="section-title">{t(language, "quickFoldersTitle")}</div>
       <div class="folder-list">
         {#each quickFolders as folder}
           <button class="folder-btn" on:click={() => onFolderClick(folder)}>
@@ -67,56 +69,56 @@
     </div>
   {/if}
 
-  <!-- Kesim Parametreleri -->
+  <!-- Vektör Parametreleri -->
   <div class="card">
-    <div class="section-title" style="margin-bottom: 12px;">Kesim Parametreleri</div>
+    <div class="section-title" style="margin-bottom: 12px;">{t(language, "parametersTitle")}</div>
 
-    <!-- Kesim Modu -->
-    <div class="control-label">Kesim Hattı Modu:</div>
+    <!-- Mod -->
+    <div class="control-label">{t(language, "modeLabel")}</div>
     <div class="pill-group">
       <button
         class="pill-btn"
         class:active={mode === "centerline"}
         on:click={() => setMode("centerline")}
       >
-        <b>Tek Hat</b>
-        <span class="pill-desc">Centerline (Çizgiler)</span>
+        <b>{t(language, "modeCenterline")}</b>
+        <span class="pill-desc">{t(language, "modeCenterlineSub")}</span>
       </button>
       <button
         class="pill-btn"
         class:active={mode === "outline"}
         on:click={() => setMode("outline")}
       >
-        <b>Dış Kontur</b>
-        <span class="pill-desc">Outline (Silüetler)</span>
+        <b>{t(language, "modeOutline")}</b>
+        <span class="pill-desc">{t(language, "modeOutlineSub")}</span>
       </button>
     </div>
 
     <!-- Köşe Tipi -->
-    <div class="control-label" style="margin-top: 14px;">Köşe Yapısı:</div>
+    <div class="control-label" style="margin-top: 14px;">{t(language, "cornerLabel")}</div>
     <div class="pill-group">
       <button
         class="pill-btn"
         class:active={corners === "sharp"}
         on:click={() => setCorners("sharp")}
       >
-        <b>📐 Dik Köşeler</b>
-        <span class="pill-desc">Kutu, Çerçeve, Pencere</span>
+        <b>{t(language, "cornerSharp")}</b>
+        <span class="pill-desc">{t(language, "cornerSharpSub")}</span>
       </button>
       <button
         class="pill-btn"
         class:active={corners === "smooth"}
         on:click={() => setCorners("smooth")}
       >
-        <b>🌀 Eğrisel / Yay</b>
-        <span class="pill-desc">Organik Hatlar & Yaylar</span>
+        <b>{t(language, "cornerSmooth")}</b>
+        <span class="pill-desc">{t(language, "cornerSmoothSub")}</span>
       </button>
     </div>
 
     <!-- Eşik Değeri -->
     <div style="margin-top: 16px;">
       <div class="slider-row">
-        <label for="threshold-slider" class="control-label">Siyah/Beyaz Hassasiyeti:</label>
+        <label for="threshold-slider" class="control-label">{t(language, "thresholdLabel")}</label>
         <span class="threshold-value">{threshold}</span>
       </div>
       <input
@@ -137,10 +139,10 @@
           checked={autocrop}
           on:change={(e) => toggleAutoCrop(e.currentTarget.checked)}
         />
-        <span>✂️ Boşlukları Kırp (Sıkı Çerçeve)</span>
+        <span>{t(language, "autoCropLabel")}</span>
       </label>
       <div class="checkbox-hint">
-        Dış boşlukları temizler, SVG sınırını çizimin en dış noktalarına sıfırlar.
+        {t(language, "autoCropHint")}
       </div>
 
       <label class="checkbox-label" style="margin-top: 6px;">
@@ -149,10 +151,10 @@
           checked={addFrame}
           on:change={(e) => toggleAddFrame(e.currentTarget.checked)}
         />
-        <span>🔲 Dış Kesim Çerçevesi Ekle</span>
+        <span>{t(language, "addFrameLabel")}</span>
       </label>
       <div class="checkbox-hint">
-        Şeklin en dış noktalarını çevreleyen bir kesim dikdörtgeni ekler.
+        {t(language, "addFrameHint")}
       </div>
     </div>
   </div>
@@ -161,9 +163,9 @@
   <button class="btn btn-convert" on:click={onConvert} disabled={isProcessing}>
     {#if isProcessing}
       <span class="spinner"></span>
-      <span>Dönüştürülüyor...</span>
+      <span>{t(language, "btnGenerating")}</span>
     {:else}
-      <span>⚡️ Tek Hat SVG Oluştur</span>
+      <span>{t(language, "btnGenerate")}</span>
     {/if}
   </button>
 </div>
