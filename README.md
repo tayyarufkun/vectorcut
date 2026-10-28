@@ -28,6 +28,11 @@ Standard vectorizers (like Potrace or typical image-trace tools) wrap around the
 ## ✨ Features
 
 * **⚡️ Single-Line (Centerline) Extraction:** Converts thick raster strokes into genuine 1-pixel medial-axis single paths. No double cutting, no double plotting.
+* **🧠 AI LineArt Extension (Multi-Color & Real-world Photos):**
+  * Transforms full-color photos, illustrations, and 3D models into clean line art before tracing.
+  * Powered by local pure-Rust ONNX inference (`tract-onnx`) with zero Python or C++ runtime overhead.
+  * Preserves aspect ratio with letterboxing and applies contrast gamma enhancement.
+  * On-demand 1-click model download keeps base installer ultra-lightweight (~1.7 MB).
 * **📐 Geometry Preservation (Sharp vs. Smooth):**
   * **Sharp Corners:** Preserves crisp 90-degree lines, mortise & tenon joints, slots, and architectural windows.
   * **Smooth Curves:** Converts organic curves into fluid cubic Bezier paths.
@@ -43,6 +48,32 @@ Standard vectorizers (like Potrace or typical image-trace tools) wrap around the
   * Custom export suffixes (e.g. `_centerline`, `_outline`).
   * Instant interface language toggle (English default & Turkish).
 * **🪶 Ultra Lightweight:** Built with Tauri v2 and native OS WebKit/WebView2 (~1.7 MB installer, minimal RAM footprint).
+
+---
+
+## 🔬 Showcase & Visual Comparisons
+
+### 1. Complex Real-World Photo: Standard Tracing vs. AI LineArt
+Standard thresholding fails on photos because surface shadows and gradients become solid black blobs. With VectorCut's AI LineArt, structural architectural lines, ladders, and window openings are cleanly isolated:
+
+![Treehouse Photo Comparison](docs/images/ai_treehouse_comparison.png)
+> **Left:** Original 3D Cardboard Treehouse Photo &nbsp;|&nbsp; **Middle:** Without AI (Blocked Shadows & Dense Noise) &nbsp;|&nbsp; **Right:** VectorCut AI LineArt (Crisp Vector Paths)
+
+---
+
+### 2. Trace Modes: Single Line (Centerline) vs. Outer Contour (Outline)
+Choose between single medial-axis strokes for CNC routing/pen drawing or closed silhouette perimeters for laser/vinyl cutting:
+
+![Plant Trace Modes Comparison](docs/images/plant_trace_modes_comparison.png)
+> **Left:** Original Plant Drawing &nbsp;|&nbsp; **Middle:** Single-Line Centerline (1 Stroke) &nbsp;|&nbsp; **Right:** Outer Contour (Silhouette Boundary)
+
+---
+
+### 3. Full-Color 3D Object to Vector Line Art
+Even colorful clay and foam sculptures with soft pastel gradients are effortlessly converted into machine-ready vector paths:
+
+![Foam Sculpture AI Vector](docs/images/ai_sculpture_comparison.png)
+> **Left:** Original Color Sculpture Photo &nbsp;|&nbsp; **Right:** VectorCut AI Vector Output
 
 ---
 
