@@ -11,6 +11,7 @@ use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{AppHandle, Emitter};
 use tracer::{CornerType, TraceMode, TraceOptions};
 
@@ -255,6 +256,88 @@ fn save_svg_dialog(
 
 fn main() {
     tauri::Builder::default()
+        .setup(|app| {
+            let handle = app.handle();
+            let pref_item = MenuItem::with_id(
+                handle,
+                "preferences",
+                "Preferences...",
+                true,
+                Some("CmdOrCtrl+,"),
+            )?;
+
+            let app_submenu = Submenu::with_items(
+                handle,
+                "VectorCut",
+                true,
+                &[
+                    &PredefinedMenuItem::about(handle, Some("About VectorCut Studio"), None)?,
+                    &PredefinedMenuItem::separator(handle)?,
+                    &pref_item,
+                    &PredefinedMenuItem::separator(handle)?,
+                    &PredefinedMenuItem::services(handle, None)?,
+                    &PredefinedMenuItem::separator(handle)?,
+                    &PredefinedMenuItem::hide(handle, None)?,
+                    &PredefinedMenuItem::hide_others(handle, None)?,
+                    &PredefinedMenuItem::show_all(handle, None)?,
+                    &PredefinedMenuItem::separator(handle)?,
+                    &PredefinedMenuItem::quit(handle, None)?,
+                ],
+            )?;
+
+            let file_open = MenuItem::with_id(handle, "open", "Open Drawing...", true, Some("CmdOrCtrl+O"))?;
+            let file_save = MenuItem::with_id(handle, "save", "Export SVG...", true, Some("CmdOrCtrl+S"))?;
+            let file_submenu = Submenu::with_items(
+                handle,
+                "File",
+                true,
+                &[
+                    &file_open,
+                    &file_save,
+                    &PredefinedMenuItem::separator(handle)?,
+                    &PredefinedMenuItem::close_window(handle, None)?,
+                ],
+            )?;
+
+            let edit_submenu = Submenu::with_items(
+                handle,
+                "Edit",
+                true,
+                &[
+                    &PredefinedMenuItem::undo(handle, None)?,
+                    &PredefinedMenuItem::redo(handle, None)?,
+                    &PredefinedMenuItem::separator(handle)?,
+                    &PredefinedMenuItem::cut(handle, None)?,
+                    &PredefinedMenuItem::copy(handle, None)?,
+                    &PredefinedMenuItem::paste(handle, None)?,
+                    &PredefinedMenuItem::select_all(handle, None)?,
+                ],
+            )?;
+
+            let view_submenu = Submenu::with_items(
+                handle,
+                "View",
+                true,
+                &[
+                    &PredefinedMenuItem::fullscreen(handle, None)?,
+                ],
+            )?;
+
+            let menu = Menu::with_items(handle, &[&app_submenu, &file_submenu, &edit_submenu, &view_submenu])?;
+            app.set_menu(menu)?;
+
+            app.on_menu_event(move |app_handle, event| {
+                if event.id().as_ref() == "preferences" {
+                    let _ = app_handle.emit("open-preferences", ());
+                } else if event.id().as_ref() == "open" {
+                    let _ = app_handle.emit("menu-open-file", ());
+                } else if event.id().as_ref() == "save" {
+                    let _ = app_handle.emit("menu-export-svg", ());
+                }
+            });
+
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             convert_image,
             get_ai_status,

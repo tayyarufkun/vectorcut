@@ -9,6 +9,7 @@
   import {
     convertImage,
     saveSvgDialog,
+    pickFile,
     getAiStatus,
     getAiDownloadProgress,
     downloadAiModel,
@@ -18,6 +19,7 @@
     onAiDownloadError,
     type ModelStatus,
   } from "./lib/api";
+  import { listen } from "@tauri-apps/api/event";
   import { loadPreferences, savePreferences, type AppPreferences } from "./lib/preferences";
   import { t, type Language } from "./lib/i18n";
 
@@ -84,10 +86,48 @@
       triggerToast(`AI Download Error: ${err}`);
     }).then((un) => (unlistenError = un));
 
+    // Native macOS Menu & Keyboard Shortcuts
+    let unlistenPref: () => void;
+    let unlistenOpenFile: () => void;
+    let unlistenExportSvg: () => void;
+
+    listen("open-preferences", () => {
+      showPreferencesModal = true;
+    }).then((un) => (unlistenPref = un));
+
+    listen("menu-open-file", () => {
+      pickFile().then((res) => {
+        if (res && res.success && res.fileName) {
+          handleFileSelected({
+            fileName: res.fileName,
+            filePath: res.filePath,
+            dataUri: res.dataUri,
+            isPdf: res.isPdf,
+          });
+        }
+      });
+    }).then((un) => (unlistenOpenFile = un));
+
+    listen("menu-export-svg", () => {
+      handleDownload();
+    }).then((un) => (unlistenExportSvg = un));
+
+    const handleKeydown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
+        e.preventDefault();
+        showPreferencesModal = true;
+      }
+    };
+    window.addEventListener("keydown", handleKeydown);
+
     return () => {
       if (unlistenProgress) unlistenProgress();
       if (unlistenComplete) unlistenComplete();
       if (unlistenError) unlistenError();
+      if (unlistenPref) unlistenPref();
+      if (unlistenOpenFile) unlistenOpenFile();
+      if (unlistenExportSvg) unlistenExportSvg();
+      window.removeEventListener("keydown", handleKeydown);
     };
   });
 
@@ -250,7 +290,6 @@
     onViewModeChange={(m) => (viewMode = m)}
     onDownload={handleDownload}
     onOpenPreferences={() => (showPreferencesModal = true)}
-    onOpenLanguage={() => (showLanguageModal = true)}
   />
 
   <div class="main-container">
