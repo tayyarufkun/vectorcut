@@ -185,7 +185,7 @@
         <div class="ai-download-box">
           {#if aiDownloading}
             <div class="ai-progress-container">
-              <div class="ai-progress-bar" style="width: {Math.round(aiProgress * 100)}%;"></div>
+              <div class="ai-progress-bar" style="width: {Math.max(5, Math.round(aiProgress * 100))}%;"></div>
             </div>
             <span class="ai-download-txt">{t(language, "prefAiDownloading")} {Math.round(aiProgress * 100)}%</span>
           {:else}

@@ -165,7 +165,7 @@
             {#if aiDownloading}
               <div class="ai-download-progress-wrap">
                 <div class="ai-progress-track">
-                  <div class="ai-progress-fill" style="width: {Math.round(aiProgress * 100)}%;"></div>
+                  <div class="ai-progress-fill" style="width: {Math.max(5, Math.round(aiProgress * 100))}%;"></div>
                 </div>
                 <div class="ai-progress-info">
                   <span>{t(localPrefs.language, "prefAiDownloading")}</span>

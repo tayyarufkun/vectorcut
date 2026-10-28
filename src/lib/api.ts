@@ -74,8 +74,16 @@ export async function getAiStatus(): Promise<ModelStatus> {
   }
 }
 
-export async function downloadAiModel(): Promise<void> {
-  return await invoke<void>("download_ai_model");
+export async function getAiDownloadProgress(): Promise<number> {
+  try {
+    return await invoke<number>("get_ai_download_progress");
+  } catch {
+    return 0;
+  }
+}
+
+export async function downloadAiModel(): Promise<ModelStatus> {
+  return await invoke<ModelStatus>("download_ai_model");
 }
 
 export async function deleteAiModel(): Promise<void> {

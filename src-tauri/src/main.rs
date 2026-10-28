@@ -138,22 +138,27 @@ fn get_ai_status() -> ai_lineart::ModelStatus {
 }
 
 #[tauri::command]
-fn download_ai_model(app_handle: AppHandle) -> Result<(), String> {
-    std::thread::spawn(move || {
+fn get_ai_download_progress() -> f32 {
+    ai_lineart::get_download_progress()
+}
+
+#[tauri::command]
+async fn download_ai_model(app_handle: AppHandle) -> Result<ai_lineart::ModelStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || {
         let handle = app_handle.clone();
-        let res = ai_lineart::download_lineart_model(move |progress| {
+        let _ = ai_lineart::download_lineart_model(move |progress| {
             let _ = handle.emit("ai-model-download-progress", progress);
         });
-        match res {
-            Ok(_) => {
-                let _ = app_handle.emit("ai-model-download-complete", true);
-            }
-            Err(e) => {
-                let _ = app_handle.emit("ai-model-download-error", e);
-            }
+        let status = ai_lineart::check_model_status();
+        let _ = app_handle.emit("ai-model-download-complete", true);
+        if status.installed {
+            Ok(status)
+        } else {
+            Err("Model indirilemedi".to_string())
         }
-    });
-    Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -253,6 +258,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             convert_image,
             get_ai_status,
+            get_ai_download_progress,
             download_ai_model,
             delete_ai_model,
             pick_file,

@@ -3,11 +3,19 @@ use serde::Serialize;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU32, Ordering};
 use tract_onnx::prelude::*;
 
 const MODEL_FILENAME: &str = "lineart_sketch.onnx";
 const MODEL_DOWNLOAD_URL: &str =
     "https://huggingface.co/Luoaho/image-to-line-drawing-onnx/resolve/main/line-drawings.onnx";
+
+static DOWNLOAD_PROGRESS_PCT: AtomicU32 = AtomicU32::new(0);
+
+pub fn get_download_progress() -> f32 {
+    let p = DOWNLOAD_PROGRESS_PCT.load(Ordering::Relaxed);
+    (p as f32) / 100.0
+}
 
 #[derive(Serialize, Clone, Debug)]
 pub struct ModelStatus {
@@ -88,6 +96,7 @@ where
     }
 
     let total_size = response.content_length().unwrap_or(17_193_338) as f32;
+    DOWNLOAD_PROGRESS_PCT.store(0, Ordering::Relaxed);
     let mut downloaded = 0.0;
     let mut file = File::create(&temp_path).map_err(|e| format!("Geçici dosya oluşturulamadı: {}", e))?;
 
@@ -105,13 +114,15 @@ where
             .map_err(|e| format!("Yazma hatası: {}", e))?;
         downloaded += bytes_read as f32;
         let progress = (downloaded / total_size).min(1.0);
-        let pct = (progress * 100.0) as i32;
-        if pct != last_reported_pct {
-            last_reported_pct = pct;
+        let pct = (progress * 100.0) as u32;
+        DOWNLOAD_PROGRESS_PCT.store(pct, Ordering::Relaxed);
+        if pct as i32 != last_reported_pct {
+            last_reported_pct = pct as i32;
             progress_callback(progress);
         }
     }
 
+    DOWNLOAD_PROGRESS_PCT.store(100, Ordering::Relaxed);
     progress_callback(1.0);
 
     // Dosyayı asıl hedefe taşı

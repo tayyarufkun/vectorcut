@@ -10,6 +10,7 @@
     convertImage,
     saveSvgDialog,
     getAiStatus,
+    getAiDownloadProgress,
     downloadAiModel,
     deleteAiModel,
     onAiDownloadProgress,
@@ -101,10 +102,29 @@
 
   async function handleDownloadAi() {
     aiDownloading = true;
-    aiProgress = 0.0;
+    aiProgress = 0.05;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const p = await getAiDownloadProgress();
+        if (p > 0) {
+          aiProgress = p;
+        }
+      } catch {}
+    }, 150);
+
     try {
-      await downloadAiModel();
+      const status = await downloadAiModel();
+      clearInterval(pollInterval);
+      aiModelStatus = status;
+      aiDownloading = false;
+      aiProgress = 1.0;
+      triggerToast(t(preferences.language, "statusSuccess"));
+      if (originalDataUri || originalFilePath) {
+        runConversion();
+      }
     } catch (e: any) {
+      clearInterval(pollInterval);
       aiDownloading = false;
       triggerToast(`AI Error: ${e?.message || e}`);
     }
