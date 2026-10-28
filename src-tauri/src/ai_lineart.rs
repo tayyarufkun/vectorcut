@@ -184,15 +184,25 @@ pub fn run_ai_lineart(image_bytes: &[u8]) -> Result<Vec<u8>, String> {
         .map_err(|e| format!("Görsel okunamadı: {}", e))?;
 
     let (orig_w, orig_h) = img.dimensions();
-    let model_size = 512;
-    let resized = img.resize_exact(model_size, model_size, image::imageops::FilterType::Triangle);
-    let rgb = resized.to_rgb8();
+    let model_dim = 512u32;
+
+    // En-boy oranını koruyarak orantılı ölçekle (Letterboxing - deformasyonu önler)
+    let scale = model_dim as f32 / (orig_w.max(orig_h) as f32);
+    let scaled_w = ((orig_w as f32 * scale).round() as u32).clamp(1, model_dim);
+    let scaled_h = ((orig_h as f32 * scale).round() as u32).clamp(1, model_dim);
+
+    let pad_x = (model_dim - scaled_w) / 2;
+    let pad_y = (model_dim - scaled_h) / 2;
+
+    let resized = img.resize_exact(scaled_w, scaled_h, image::imageops::FilterType::Lanczos3);
+    let mut canvas = image::RgbImage::from_pixel(model_dim, model_dim, image::Rgb([255, 255, 255]));
+    image::imageops::overlay(&mut canvas, &resized.to_rgb8(), pad_x as i64, pad_y as i64);
 
     // RGB tensörü oluştur [1, 3, 512, 512]
     let tensor: Tensor = tract_ndarray::Array4::from_shape_fn(
-        (1, 3, model_size as usize, model_size as usize),
+        (1, 3, model_dim as usize, model_dim as usize),
         |(_, c, y, x)| {
-            let pixel = rgb.get_pixel(x as u32, y as u32);
+            let pixel = canvas.get_pixel(x as u32, y as u32);
             pixel[c] as f32 / 255.0
         },
     )
@@ -214,17 +224,41 @@ pub fn run_ai_lineart(image_bytes: &[u8]) -> Result<Vec<u8>, String> {
         .to_plain_array_view::<f32>()
         .map_err(|e| format!("Çıktı tensörü okunamadı: {}", e))?;
 
-    let mut out_gray = GrayImage::new(model_size, model_size);
-    for y in 0..model_size {
-        for x in 0..model_size {
+    let mut out_gray = GrayImage::new(model_dim, model_dim);
+    for y in 0..model_dim {
+        for x in 0..model_dim {
             let val = output[[0, 0, y as usize, x as usize]];
             let pixel_val = (val.clamp(0.0, 1.0) * 255.0) as u8;
             out_gray.put_pixel(x, y, Luma([pixel_val]));
         }
     }
 
-    let dynamic_gray = DynamicImage::ImageLuma8(out_gray);
-    let final_img = dynamic_gray.resize_exact(orig_w, orig_h, image::imageops::FilterType::Triangle);
+    // Aktif alanı kırp (dolgu boşluklarını at)
+    let cropped = image::imageops::crop_imm(&out_gray, pad_x, pad_y, scaled_w, scaled_h).to_image();
+
+    // Kontrast geliştirme: çizgilerin soluk kalmasını önleyerek hatları netleştir
+    let mut min_val = 255u8;
+    let mut max_val = 0u8;
+    for p in cropped.pixels() {
+        let v = p[0];
+        if v < min_val { min_val = v; }
+        if v > max_val { max_val = v; }
+    }
+
+    let mut enhanced = cropped.clone();
+    if max_val > min_val && min_val < 200 {
+        let range = (max_val - min_val) as f32;
+        for (x, y, p) in enhanced.enumerate_pixels_mut() {
+            let v = cropped.get_pixel(x, y)[0] as f32;
+            let norm = (v - min_val as f32) / range;
+            // Gamma eğrisi ile çizgileri belirginleştir
+            let gamma_norm = norm.powf(1.4);
+            *p = Luma([(gamma_norm * 255.0).clamp(0.0, 255.0) as u8]);
+        }
+    }
+
+    let dynamic_gray = DynamicImage::ImageLuma8(enhanced);
+    let final_img = dynamic_gray.resize_exact(orig_w, orig_h, image::imageops::FilterType::Lanczos3);
 
     let mut buffer = std::io::Cursor::new(Vec::new());
     final_img
