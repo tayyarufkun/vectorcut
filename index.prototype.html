@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lazer Kesim Stüdyosu - Snapmaker Luban SVG Dönüştürücü</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --panel-border: #334155;
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --laser-red: #ef4444;
+      --success: #10b981;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Header */
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--panel-border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.1rem; }
+    .brand svg { fill: var(--accent); width: 24px; height: 24px; }
+    .tag { font-size: 0.75rem; background: #0369a1; color: #e0f2fe; padding: 2px 8px; border-radius: 12px; font-weight: 500; }
+
+    /* Layout */
+    .container { display: flex; flex: 1; overflow: hidden; }
+    .sidebar {
+      width: 380px;
+      background: var(--panel);
+      border-right: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      gap: 18px;
+      overflow-y: auto;
+    }
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #090d16;
+      padding: 20px;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    /* Cards & Controls */
+    .section-title { font-size: 0.82rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .card { background: #182234; border: 1px solid var(--panel-border); border-radius: 10px; padding: 14px; }
+    
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed #475569;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: rgba(56, 189, 248, 0.05); }
+    .dropzone svg { width: 36px; height: 36px; fill: var(--text-muted); margin-bottom: 8px; }
+
+    /* Radio Pills */
+    .pill-group { display: flex; gap: 8px; margin-top: 6px; }
+    .pill-btn {
+      flex: 1;
+      padding: 9px 12px;
+      font-size: 0.85rem;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      background: #111827;
+      color: var(--text);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .pill-btn.active {
+      background: var(--accent);
+      color: #042f2e;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* Sliders */
+    .slider-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+
+    /* Quick folders */
+    .folder-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .folder-btn {
+      background: #0f172a;
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      font-size: 0.8rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .folder-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Action Buttons */
+    .btn {
+      background: var(--accent);
+      color: #042f2e;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn-secondary {
+      background: #334155;
+      color: var(--text);
+    }
+    .btn-secondary:hover { background: #475569; }
+
+    /* Preview Canvas Area */
+    .view-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel);
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .preview-split {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      overflow: hidden;
+    }
+    .preview-panel {
+      background: #ffffff;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--panel-border);
+    }
+    .preview-header {
+      background: #f1f5f9;
+      color: #334155;
+      padding: 8px 14px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Zoom Controls */
+    .zoom-tools {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      background: #e2e8f0;
+      padding: 2px 4px;
+      border-radius: 6px;
+    }
+    .zoom-btn {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      color: #1e293b;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.1s;
+    }
+    .zoom-btn:hover { background: #f8fafc; border-color: #94a3b8; }
+    .zoom-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #475569;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    /* Pan & Zoom Viewport */
+    .preview-body {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-image: 
+        linear-gradient(45deg, #f8fafc 25%, transparent 25%), 
+        linear-gradient(-45deg, #f8fafc 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #f8fafc 75%), 
+        linear-gradient(-45deg, transparent 75%, #f8fafc 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+    .preview-body.dragging { cursor: grabbing; }
+
+    .panzoom-content {
+      position: absolute;
+      transform-origin: 0 0;
+      will-change: transform;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .panzoom-content * { pointer-events: auto; }
+    .panzoom-content svg, .panzoom-content img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    }
+    
+    /* Overlay mode preview */
+    .preview-overlay {
+      grid-column: 1 / -1;
+      position: relative;
+    }
+    .overlay-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .overlay-container img { position: absolute; max-width: 100%; max-height: 100%; opacity: 0.4; }
+    .overlay-container svg { position: relative; max-width: 100%; max-height: 100%; z-index: 2; }
+    .overlay-container svg path { stroke: var(--laser-red) !important; stroke-width: 1.5 !important; }
+
+    /* Status badge */
+    #statusToast {
+      font-size: 0.85rem;
+      color: var(--success);
+      font-weight: 600;
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      <span>Lazer Kesim Stüdyosu</span>
+      <span class="tag">Snapmaker Luban Uyumlu</span>
+    </div>
+    <div id="statusToast">✓ İşlem Başarılı!</div>
+  </header>
+
+  <div class="container">
+    <!-- SOL PANEL: AYARLAR VE YÜKLEME -->
+    <div class="sidebar">
+      
+      <!-- Hızlı Klasörler -->
+      <div>
+        <div class="section-title">Hızlı Masaüstü Klasörleri</div>
+        <div class="folder-list" id="quickFolders">
+          <button class="folder-btn" onclick="loadFolder('Teleferik')">Teleferik</button>
+          <button class="folder-btn" onclick="loadFolder('Vosvos')">Vosvos</button>
+          <button class="folder-btn" onclick="loadFolder('Kauçuk Baskı')">Kauçuk Baskı</button>
+        </div>
+      </div>
+
+      <!-- Sürükle Bırak / Dosya Seç -->
+      <div>
+        <div class="section-title">Görsel / PDF Seç</div>
+        <div class="dropzone" id="dropzone" onclick="openFileDialog()">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+          <div style="font-weight:600; font-size:0.9rem;" id="fileNameLabel">Görsel / PDF Seçmek İçin Tıklayın</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">PNG, JPG, PDF Sürükleyin</div>
+        </div>
+        <input type="file" id="fileInput" accept="image/*,.pdf,application/pdf" style="display:none" onchange="handleFileSelect(event)">
+      </div>
+
+      <!-- Ayarlar -->
+      <div class="card">
+        <div class="section-title" style="margin-bottom:12px;">Kesim Parametreleri</div>
+        
+        <!-- Kesim Modu -->
+        <label style="font-size:0.8rem; font-weight:600;">Kesim Hattı Modu:</label>
+        <div class="pill-group">
+          <button class="pill-btn active" id="btnModeCenterline" onclick="setMode('centerline')">
+            <b>Tek Hat</b><br><span style="font-size:0.7rem; opacity:0.8">Centerline (Çizgiler)</span>
+          </button>
+          <button class="pill-btn" id="btnModeOutline" onclick="setMode('outline')">
+            <b>Dış Kontur</b><br><span style="font-size:0.7rem; opacity:0.8">Outline (Silüetler)</span>
+          </button>
+        </div>
+
+        <!-- Köşe Tipi -->
+        <label style="font-size:0.8rem; font-weight:600; margin-top:14px; display:block;">Köşe Yapısı:</label>
+        <div class="pill-group">
+          <button class="pill-btn active" id="btnCornerSharp" onclick="setCorners('sharp')">
+            <b>📐 Dik Köşeler</b><br><span style="font-size:0.7rem; opacity:0.8">Kutu, Çerçeve, Pencere</span>
+          </button>
+          <button class="pill-btn" id="btnCornerSmooth" onclick="setCorners('smooth')">
+            <b>🌀 Eğrisel / Yay</b><br><span style="font-size:0.7rem; opacity:0.8">Vosvos, Organik Şekil</span>
+          </button>
+        </div>
+
+        <!-- Eşik Değeri -->
+        <div style="margin-top:16px;">
+          <div class="slider-row">
+            <label style="font-size:0.8rem; font-weight:600;">Siyah/Beyaz Hassasiyeti:</label>
+            <span id="threshVal" style="font-size:0.85rem; font-weight:700; color:var(--accent);">210</span>
+          </div>
+          <input type="range" id="threshSlider" min="50" max="254" value="210" oninput="updateThresh(this.value)">
+        </div>
+
+        <!-- Çerçeve & Kırpma Seçenekleri -->
+        <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--panel-border); display:flex; flex-direction:column; gap:8px;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; font-weight:600; cursor:pointer;">
+            <input type="checkbox" id="chkAutoCrop" checked onchange="toggleAutoCrop(this.checked)" style="accent-color:var(--accent); width:16px; height:16px;">
+            <span>✂️ Boşlukları Kırp (Sıkı Çerçeve)</span>
+          </label>
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-left:24px;">Dış boşlukları atar, SVG sınırını şeklin en dış noktalarına sıfırlar.</div>
+
+          <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; font-weight:600; cursor:pointer; margin-top:4px;">
+            <input type="checkbox" id="chkAddFrame" onchange="toggleAddFrame(this.checked)" style="accent-color:var(--accent); width:16px; height:16px;">
+            <span>🔲 Dış Kesim Çerçevesi Ekle</span>
+          </label>
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-left:24px;">Şeklin en dış noktalarını çevreleyen bir kesim dikdörtgeni ekler.</div>
+        </div>
+      </div>
+
+      <!-- Aksiyon Butonları -->
+      <button class="btn" onclick="convertCurrent()">
+        <span>⚡️ Tek Hat SVG Oluştur</span>
+      </button>
+
+      <button class="btn btn-secondary" onclick="batchConvertFolder()" id="batchBtn" style="display:none;">
+        <span>📁 Klasördeki Tümünü Çevir</span>
+      </button>
+
+    </div>
+
+    <!-- SAĞ BÖLGE: CANLI ÖNİZLEME -->
+    <div class="content-area">
+      <div class="view-toolbar">
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span style="font-weight:600; font-size:0.9rem;" id="previewTitle">Önizleme</span>
+          <span id="detailBadge" style="font-size:0.75rem; color:var(--text-muted);">Mouse ile kaydırabilir ve tekerlekle yakınlaşabilirsiniz</span>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="folder-btn" onclick="toggleViewMode('split')" id="btnViewSplit">Yan Yana</button>
+          <button class="folder-btn" onclick="toggleViewMode('overlay')" id="btnViewOverlay">Üst Üste Bindir (Lazer Kontrolü)</button>
+          <button class="btn" style="padding:6px 14px; font-size:0.8rem;" onclick="downloadSVG()" id="btnDownload" disabled>
+            💾 Luban SVG İndir
+          </button>
+        </div>
+      </div>
+
+      <!-- Yan Yana Önizleme -->
+      <div class="preview-split" id="previewArea">
+        <!-- Orijinal -->
+        <div class="preview-panel">
+          <div class="preview-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span>ORİJİNAL ÇİZİM</span>
+              <span id="origSize" style="font-size:0.75rem; color:#64748b;">-</span>
+            </div>
+            <div class="zoom-tools">
+              <button class="zoom-btn" onclick="origViewer.zoomStep(-1)" title="Uzaklaştır">−</button>
+              <span class="zoom-badge" id="origZoomBadge">100%</span>
+              <button class="zoom-btn" onclick="origViewer.zoomStep(1)" title="Yakınlaştır">+</button>
+              <button class="zoom-btn" onclick="origViewer.fitToView()" title="Ekrana Sığdır">⊡ Sığdır</button>
+              <button class="zoom-btn" onclick="origViewer.reset()" title="Sıfırla">1:1</button>
+            </div>
+          </div>
+          <div class="preview-body" id="origContainer">
+            <div class="panzoom-content" id="origContentWrapper">
+              <span style="color:#94a3b8; font-size:0.85rem;">Soldaki alandan bir görsel seçin</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SVG Sonucu -->
+        <div class="preview-panel">
+          <div class="preview-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="color:#0f172a;">LUBAN KESİM YOLU (TEK HAT SVG)</span>
+              <span id="svgStatus" style="color:#059669; font-size:0.75rem;">Kesime Hazır</span>
+            </div>
+            <div class="zoom-tools">
+              <button class="zoom-btn" onclick="svgViewer.zoomStep(-1)" title="Uzaklaştır">−</button>
+              <span class="zoom-badge" id="svgZoomBadge">100%</span>
+              <button class="zoom-btn" onclick="svgViewer.zoomStep(1)" title="Yakınlaştır">+</button>
+              <button class="zoom-btn" onclick="svgViewer.fitToView()" title="Ekrana Sığdır">⊡ Sığdır</button>
+              <button class="zoom-btn" onclick="svgViewer.reset()" title="Sıfırla">1:1</button>
+            </div>
+          </div>
+          <div class="preview-body" id="svgContainer">
+            <div class="panzoom-content" id="svgContentWrapper">
+              <span style="color:#94a3b8; font-size:0.85rem;">Dönüştürme bekleniyor...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentImageBase64 = null;
+    let currentRelativePath = null;
+    let currentFolderName = null;
+    let currentSVG = null;
+    let viewMode = 'split'; // 'split' or 'overlay'
+
+    let config = {
+      mode: 'centerline',
+      corners: 'sharp',
+      threshold: 210,
+      autocrop: true,
+      addFrame: false
+    };
+
+    function toggleAutoCrop(val) {
+      config.autocrop = val;
+      if (currentImageBase64 || currentRelativePath) convertCurrent();
+    }
+
+    function toggleAddFrame(val) {
+      config.addFrame = val;
+      if (currentImageBase64 || currentRelativePath) convertCurrent();
+    }
+
+    // Pan & Zoom Controller Class
+    class PanZoomViewer {
+      constructor(containerId, contentId, badgeId) {
+        this.container = document.getElementById(containerId);
+        this.content = document.getElementById(contentId);
+        this.badge = document.getElementById(badgeId);
+        
+        this.scale = 1.0;
+        this.panX = 0;
+        this.panY = 0;
+        this.isDragging = false;
+        this.startX = 0;
+        this.startY = 0;
+
+        this.initEvents();
+      }
+
+      initEvents() {
+        this.container.addEventListener('mousedown', (e) => {
+          if (e.button !== 0) return;
+          this.isDragging = true;
+          this.startX = e.clientX - this.panX;
+          this.startY = e.clientY - this.panY;
+          this.container.classList.add('dragging');
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!this.isDragging) return;
+          this.panX = e.clientX - this.startX;
+          this.panY = e.clientY - this.startY;
+          this.applyTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+          if (this.isDragging) {
+            this.isDragging = false;
+            this.container.classList.remove('dragging');
+          }
+        });
+
+        this.container.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          const rect = this.container.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+
+          const factor = e.deltaY < 0 ? 1.15 : 0.87;
+          this.zoomAt(mouseX, mouseY, factor);
+        }, { passive: false });
+      }
+
+      zoomAt(x, y, factor) {
+        const oldScale = this.scale;
+        let newScale = oldScale * factor;
+        newScale = Math.min(Math.max(newScale, 0.05), 30); // 5% ile 3000% arası zoom
+
+        this.panX = x - (x - this.panX) * (newScale / oldScale);
+        this.panY = y - (y - this.panY) * (newScale / oldScale);
+        this.scale = newScale;
+
+        this.applyTransform();
+      }
+
+      zoomStep(direction) {
+        const rect = this.container.getBoundingClientRect();
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const factor = direction > 0 ? 1.25 : 0.8;
+        this.zoomAt(cx, cy, factor);
+      }
+
+      fitToView() {
+        const rect = this.container.getBoundingClientRect();
+        // Hedef nesneyi bul
+        const target = this.content.querySelector('svg, img');
+        if (!target) {
+          this.reset();
+          return;
+        }
+
+        let tw = target.naturalWidth || target.clientWidth || target.getBoundingClientRect().width;
+        let th = target.naturalHeight || target.clientHeight || target.getBoundingClientRect().height;
+
+        // viewBox kontrolü
+        if (target.viewBox && target.viewBox.baseVal && target.viewBox.baseVal.width) {
+          tw = target.viewBox.baseVal.width;
+          th = target.viewBox.baseVal.height;
+        }
+
+        if (tw && th) {
+          const availW = rect.width - 40;
+          const availH = rect.height - 40;
+          this.scale = Math.min(availW / tw, availH / th, 1.0);
+          this.panX = (rect.width - tw * this.scale) / 2;
+          this.panY = (rect.height - th * this.scale) / 2;
+        } else {
+          this.scale = 1.0;
+          this.panX = 20;
+          this.panY = 20;
+        }
+        this.applyTransform();
+      }
+
+      reset() {
+        this.scale = 1.0;
+        this.panX = 0;
+        this.panY = 0;
+        this.applyTransform();
+      }
+
+      applyTransform() {
+        if (this.content) {
+          this.content.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.scale})`;
+        }
+        if (this.badge) {
+          this.badge.innerText = `${Math.round(this.scale * 100)}%`;
+        }
+      }
+    }
+
+    let origViewer = null;
+    let svgViewer = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      origViewer = new PanZoomViewer('origContainer', 'origContentWrapper', 'origZoomBadge');
+      svgViewer = new PanZoomViewer('svgContainer', 'svgContentWrapper', 'svgZoomBadge');
+    });
+
+    function setMode(mode) {
+      config.mode = mode;
+      document.getElementById('btnModeCenterline').classList.toggle('active', mode === 'centerline');
+      document.getElementById('btnModeOutline').classList.toggle('active', mode === 'outline');
+      if (currentImageBase64 || currentRelativePath) convertCurrent();
+    }
+
+    function setCorners(corners) {
+      config.corners = corners;
+      document.getElementById('btnCornerSharp').classList.toggle('active', corners === 'sharp');
+      document.getElementById('btnCornerSmooth').classList.toggle('active', corners === 'smooth');
+      if (currentImageBase64 || currentRelativePath) convertCurrent();
+    }
+
+    function updateThresh(val) {
+      document.getElementById('threshVal').innerText = val;
+      config.threshold = parseInt(val);
+    }
+
+    async function openFileDialog() {
+      try {
+        const res = await fetch('/api/pick-file');
+        const data = await res.json();
+        if (data.success && data.filePath) {
+          document.getElementById('fileNameLabel').innerText = data.fileName;
+          currentRelativePath = data.filePath;
+          currentImageBase64 = data.dataUri;
+          currentFolderName = null;
+          document.getElementById('batchBtn').style.display = 'none';
+          showOriginal(data.dataUri);
+          convertCurrent();
+          return;
+        } else if (data.cancelled) {
+          return;
+        }
+      } catch (err) {
+        console.log("Native picker fallback:", err);
+      }
+      document.getElementById('fileInput').click();
+    }
+
+    // Drag and Drop
+    const dropzone = document.getElementById('dropzone');
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) {
+        processFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    function handleFileSelect(e) {
+      if (e.target.files.length > 0) processFile(e.target.files[0]);
+    }
+
+    function processFile(file) {
+      document.getElementById('fileNameLabel').innerText = file.name;
+      currentFolderName = null;
+      document.getElementById('batchBtn').style.display = 'none';
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        currentImageBase64 = evt.target.result;
+        currentRelativePath = null;
+        showOriginal(currentImageBase64);
+        convertCurrent();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function showOriginal(src) {
+      const wrapper = document.getElementById('origContentWrapper');
+      wrapper.innerHTML = `<img src="${src}" id="origImg">`;
+      const img = new Image();
+      img.onload = function() {
+        document.getElementById('origSize').innerText = `${this.width} x ${this.height} px`;
+        if (origViewer) origViewer.fitToView();
+      };
+      img.src = src;
+    }
+
+    // Load from local folder
+    async function loadFolder(name) {
+      currentFolderName = name;
+      document.getElementById('batchBtn').style.display = 'block';
+      document.getElementById('batchBtn').innerText = `📁 "${name}" Klasörünün Tümünü Çevir`;
+
+      try {
+        const res = await fetch(`/api/list-images?folder=${encodeURIComponent(name)}`);
+        const data = await res.json();
+        if (data.images && data.images.length > 0) {
+          const firstImg = data.images[0];
+          currentRelativePath = `${name}/${firstImg}`;
+          document.getElementById('fileNameLabel').innerText = `${name} / ${firstImg}`;
+          
+          const imgSrc = `/api/get-image?path=${encodeURIComponent(currentRelativePath)}`;
+          currentImageBase64 = null;
+          showOriginal(imgSrc);
+          convertCurrent();
+        }
+      } catch (err) {
+        alert("Klasör okunurken hata oluştu: " + err);
+      }
+    }
+
+    async function convertCurrent() {
+      if (!currentImageBase64 && !currentRelativePath) return;
+
+      document.getElementById('svgContentWrapper').innerHTML = '<span style="color:#0284c7;">Vektörleştiriliyor...</span>';
+
+      const payload = {
+        mode: config.mode,
+        corners: config.corners,
+        threshold: config.threshold,
+        autocrop: config.autocrop,
+        addFrame: config.addFrame
+      };
+
+      if (currentImageBase64) {
+        payload.base64 = currentImageBase64;
+      } else if (currentRelativePath) {
+        payload.filePath = currentRelativePath;
+        const parts = currentRelativePath.split('.');
+        const ext = parts.pop();
+        const base = parts.join('.');
+        payload.saveTo = `${base}_tek_hat.svg`;
+      }
+
+      try {
+        const res = await fetch('/api/convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          currentSVG = data.svg;
+          renderSVGResult(data.svg);
+          document.getElementById('btnDownload').disabled = false;
+          showToast(data.savedPath ? 'SVG Klasöre Kaydedildi!' : 'SVG Hazır!');
+        } else {
+          document.getElementById('svgContentWrapper').innerHTML = `<span style="color:#dc2626;">Hata: ${data.error}</span>`;
+        }
+      } catch (err) {
+        document.getElementById('svgContentWrapper').innerHTML = `<span style="color:#dc2626;">Sunucu hatası: ${err}</span>`;
+      }
+    }
+
+    function renderSVGResult(svgXml) {
+      if (viewMode === 'split') {
+        const wrapper = document.getElementById('svgContentWrapper');
+        wrapper.innerHTML = svgXml;
+        if (svgViewer) {
+          setTimeout(() => svgViewer.fitToView(), 50);
+        }
+      } else {
+        renderOverlay();
+      }
+    }
+
+    function toggleViewMode(mode) {
+      viewMode = mode;
+      document.getElementById('btnViewSplit').style.borderColor = mode === 'split' ? 'var(--accent)' : 'var(--panel-border)';
+      document.getElementById('btnViewOverlay').style.borderColor = mode === 'overlay' ? 'var(--accent)' : 'var(--panel-border)';
+      
+      const splitArea = document.getElementById('previewArea');
+      if (mode === 'overlay') {
+        splitArea.className = 'preview-split preview-overlay';
+        renderOverlay();
+      } else {
+        splitArea.className = 'preview-split';
+        showOriginal(currentImageBase64 || `/api/get-image?path=${encodeURIComponent(currentRelativePath)}`);
+        renderSVGResult(currentSVG);
+      }
+    }
+
+    function renderOverlay() {
+      if (!currentSVG) return;
+      const src = currentImageBase64 || `/api/get-image?path=${encodeURIComponent(currentRelativePath)}`;
+      const wrapper = document.getElementById('origContentWrapper');
+      wrapper.innerHTML = `
+        <div class="overlay-container">
+          <img src="${src}">
+          ${currentSVG}
+        </div>
+      `;
+      if (origViewer) origViewer.fitToView();
+    }
+
+    async function batchConvertFolder() {
+      if (!currentFolderName) return;
+      if (!confirm(`"${currentFolderName}" klasöründeki TÜM görseller tek hat SVG olarak kaydedilsin mi?`)) return;
+
+      try {
+        const res = await fetch('/api/batch-convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            folder: currentFolderName,
+            mode: config.mode,
+            corners: config.corners,
+            threshold: config.threshold,
+            autocrop: config.autocrop,
+            addFrame: config.addFrame
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`Harika! Toplam ${data.convertedCount} adet dosya başarıyla klasörüne dönüştürüldü!`);
+        } else {
+          alert("Hata: " + data.error);
+        }
+      } catch (err) {
+        alert("Bağlantı hatası: " + err);
+      }
+    }
+
+    async function downloadSVG() {
+      if (!currentSVG) return;
+      
+      let baseName = "luban_tek_hat.svg";
+      if (currentRelativePath) {
+        const p = currentRelativePath.split('/').pop().split('.')[0];
+        baseName = `${p}_tek_hat.svg`;
+      } else {
+        const lbl = document.getElementById('fileNameLabel').innerText;
+        if (lbl && !lbl.includes('Görsel') && !lbl.includes('Seç')) {
+          baseName = `${lbl.split('.')[0]}_tek_hat.svg`;
+        }
+      }
+
+      try {
+        const res = await fetch('/api/save-svg', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            svg: currentSVG,
+            filename: baseName
+          })
+        });
+        const data = await res.json();
+        if (data.success && data.savedPath) {
+          showToast(`Kaydedildi: ${data.savedPath.split('/').pop()}`);
+          return;
+        } else if (data.cancelled) {
+          return;
+        }
+      } catch (err) {
+        console.log("Save fallback:", err);
+      }
+
+      // Fallback
+      const blob = new Blob([currentSVG], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = baseName;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('statusToast');
+      toast.innerText = `✓ ${msg}`;
+      toast.style.display = 'flex';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+  </script>
+</body>
+</html>

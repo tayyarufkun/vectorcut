@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Node & Frontend
+node_modules/
+dist/
+build/
+.svelte-kit/
+npm-debug.log*
+
+# Rust & Tauri
+src-tauri/target/
+src-tauri/Cargo.lock
+
+# Temp files
+.tmp*
+*.bmp
+*.log
